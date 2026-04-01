@@ -9,6 +9,84 @@
 
 Web-based Android TV / ADB control center built with FastAPI, Jinja2, WebSocket, SQLite, and local ADB/Scrcpy tooling.
 
+Architecture document:
+
+- [docs/architecture.md](/d:/LAB/TV_Data_collection/docs/architecture.md)
+
+## Architecture Overview
+
+### System Context
+
+```mermaid
+flowchart LR
+    User[Browser]
+    Proxy[Reverse Proxy]
+    App[FastAPI Webapp]
+    DB[(SQLite)]
+    ADB[Local ADB]
+    SCRCPY[Local Scrcpy]
+    TV[Android TV Devices]
+
+    User --> Proxy --> App
+    App --> DB
+    App --> ADB --> TV
+    App --> SCRCPY --> TV
+```
+
+### Runtime Components
+
+```mermaid
+flowchart TB
+    Main[main.py]
+    Routes[Routes / Templates / APIs]
+    Checker[Connection Checker]
+    Automation[Automation Engine]
+    Time[NTP Service]
+    WS[WebSocket Manager]
+    Alert[Alert Manager]
+    DBLayer[SQLite Database Layer]
+    DeviceOps[ADB / Scrcpy Managers]
+
+    Main --> Routes
+    Main --> Checker
+    Main --> Automation
+    Main --> Time
+    Routes --> WS
+    Routes --> Alert
+    Routes --> DBLayer
+    Routes --> DeviceOps
+    Checker --> DeviceOps
+    Checker --> WS
+    Checker --> Automation
+    Automation --> Alert
+    Automation --> DBLayer
+    Automation --> DeviceOps
+    Automation --> Time
+```
+
+### Request / Action Flow
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant P as Reverse Proxy
+    participant A as FastAPI
+    participant D as SQLite
+    participant X as ADB / Scrcpy
+    participant T as TV Device
+
+    B->>P: HTTP / WebSocket request
+    P->>A: Forward request
+    A->>D: Read / write state
+    A->>X: Execute device action
+    X->>T: Control / query device
+    T-->>X: Result
+    X-->>A: Action response
+    D-->>A: Data result
+    A-->>P: HTML / JSON / WS event
+    P-->>B: Response
+```
+
 ## Stack
 
 - Backend: FastAPI + Uvicorn
