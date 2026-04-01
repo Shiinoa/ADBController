@@ -1,5 +1,12 @@
 # ADBController
 
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688?logo=fastapi&logoColor=white)
+![Uvicorn](https://img.shields.io/badge/Uvicorn-ASGI-4051B5)
+![SQLite](https://img.shields.io/badge/Database-SQLite-003B57?logo=sqlite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-CLI-06B6D4?logo=tailwindcss&logoColor=white)
+![ADB](https://img.shields.io/badge/Android-ADB-3DDC84?logo=android&logoColor=white)
+
 Web-based Android TV / ADB control center built with FastAPI, Jinja2, WebSocket, SQLite, and local ADB/Scrcpy tooling.
 
 ## Stack
