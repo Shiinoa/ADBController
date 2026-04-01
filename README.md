@@ -132,6 +132,10 @@ Note:
 
 This repository currently does not include product screenshots.
 
+Screenshot folder guide:
+
+- [docs/screenshots/README.md](/d:/LAB/TV_Data_collection/docs/screenshots/README.md)
+
 Recommended screenshots to add later:
 
 - Login page
