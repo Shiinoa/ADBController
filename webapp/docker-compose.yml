@@ -1,0 +1,19 @@
+services:
+  webapp:
+    build: .
+    # Use host networking so container can reach TV devices across subnets
+    network_mode: host
+    volumes:
+      # Persistent data
+      - ./app_data.db:/app/app_data.db
+      - ./devices_data.csv:/app/devices_data.csv
+      - ./screenshots:/app/screenshots
+      - ./reports:/app/reports
+      - ./documents:/app/documents
+      # Persist ADB keys so TV devices stay authorized after rebuild
+      - ./adb_keys:/root/.android
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - ADB_PATH=/usr/bin/adb
+    restart: unless-stopped

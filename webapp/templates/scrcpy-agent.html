@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ADB Control Center - Scrcpy Client Agent">
+    <title>Scrcpy Agent - ADB Control Center</title>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .agent-status-dot {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+        }
+        .agent-status-dot.online { background: #78BF5E; box-shadow: 0 0 8px rgba(120, 191, 94, 0.6); }
+        .agent-status-dot.offline { background: #F63049; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:px-4 focus:py-2 focus:bg-green-600 focus:text-white">Skip to main content</a>
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0" aria-label="Main navigation">
+        <div class="flex items-center gap-3 mb-8 p-2">
+            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-bold">ADB Control</h1>
+                <p class="text-xs text-gray-600">TV Management</p>
+            </div>
+        </div>
+
+        <nav class="space-y-2">
+            <a href="/dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+                Dashboard
+            </a>
+            <a href="/control" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+                Control Panel
+            </a>
+            <a href="/multiview" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                </svg>
+                Multi-View
+            </a>
+            <a href="/devices" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                TV Devices
+            </a>
+            <a href="/reports" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Daily Reports
+            </a>
+            <a href="/documents" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                Documents
+            </a>
+            <a href="/report-form" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Report Form
+            </a>
+            <a href="/automate" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Automate
+            </a>
+            <a href="/settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Settings
+            </a>
+            <a href="/scrcpy-agent" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Scrcpy Agent
+            </a>
+        </nav>
+
+        <!-- User Info -->
+        <div class="absolute bottom-4 left-4 right-4">
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-100">
+                <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold" id="userInitial">A</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium" id="userName">Admin</p>
+                    <p class="text-xs text-gray-600" id="userRole">Administrator</p>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-gray-900" aria-label="Logout">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content" class="flex-1 ml-64 p-8">
+        <!-- Page Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h2 class="text-2xl font-bold">Scrcpy Client Agent</h2>
+                <p class="text-gray-500 mt-1">Launch native scrcpy windows on your local PC</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="agent-status-dot" id="agentDot"></span>
+                <span id="agentStatusText" class="text-gray-500">Checking...</span>
+                <button onclick="checkAgent()" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Agent Connection Card -->
+        <div class="card rounded-xl p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4">Agent Connection</h3>
+            <div class="flex items-end gap-4">
+                <div class="flex-1">
+                    <label for="agentUrl" class="block text-sm text-gray-500 mb-1">Agent URL</label>
+                    <input id="agentUrl" type="text" value=""
+                           class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:border-green-500 focus:outline-none"
+                           placeholder="http://hostname:18080">
+                </div>
+                <button onclick="connectAgent()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium">
+                    Connect
+                </button>
+            </div>
+            <div id="agentInfo" class="mt-4 hidden">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                    <div class="bg-gray-100 rounded-lg p-3">
+                        <p class="text-gray-500">Version</p>
+                        <p class="font-medium" id="agentVersion">-</p>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg p-3">
+                        <p class="text-gray-500">Scrcpy</p>
+                        <p class="font-medium" id="agentScrcpy">-</p>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg p-3">
+                        <p class="text-gray-500">ADB</p>
+                        <p class="font-medium" id="agentAdb">-</p>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg p-3">
+                        <p class="text-gray-500">Install Dir</p>
+                        <p class="font-medium text-xs truncate" id="agentInstallDir" title="">-</p>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg p-3">
+                        <p class="text-gray-500">Active Sessions</p>
+                        <p class="font-medium" id="agentSessions">-</p>
+                    </div>
+                </div>
+                <!-- Remote Install Button (shown when agent connected but scrcpy missing) -->
+                <div id="remoteInstallSection" class="mt-4 hidden">
+                    <div class="flex items-center gap-3 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
+                        <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        <p class="text-yellow-700 text-sm flex-1">Scrcpy not installed on client. Click to download from server.</p>
+                        <button onclick="remoteInstallScrcpy()" id="installBtn" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm font-medium">
+                            Install Scrcpy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connected Agents -->
+        <div class="card rounded-xl p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Connected Agents</h3>
+                <span id="agentCount" class="text-sm text-gray-500">Loading...</span>
+            </div>
+            <div id="agentsTableWrap">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-gray-500 border-b border-gray-200">
+                            <th class="pb-2">Status</th>
+                            <th class="pb-2">Hostname</th>
+                            <th class="pb-2">IP</th>
+                            <th class="pb-2">Port</th>
+                            <th class="pb-2">Scrcpy</th>
+                            <th class="pb-2">Sessions</th>
+                            <th class="pb-2">Last Seen</th>
+                            <th class="pb-2"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="agentsBody">
+                        <tr><td colspan="8" class="py-4 text-center text-gray-500">No agents detected yet</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Quick Connect -->
+        <div class="card rounded-xl p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4">Quick Connect</h3>
+            <p class="text-sm text-gray-500 mb-3">Download and double-click to start the agent on client PC:</p>
+            <div class="flex flex-wrap items-center gap-3">
+                <button onclick="downloadQuickConnect()" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium inline-flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Download quick_connect.bat
+                </button>
+                <button onclick="copyQuickConnect()" id="copyBtn" class="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium inline-flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Copy PowerShell Command
+                </button>
+            </div>
+            <details class="mt-3">
+                <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-600">View command</summary>
+                <pre id="quickConnectCmd" class="bg-gray-100 rounded-lg p-3 mt-2 text-xs text-green-600 font-mono overflow-x-auto whitespace-pre-wrap break-all select-all"></pre>
+            </details>
+            <p class="text-xs text-gray-500 mt-2">No Python required. Downloads scrcpy + agent exe from server and runs automatically.</p>
+        </div>
+
+        <!-- Quick Download -->
+        <div id="downloadSection" class="card rounded-xl p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4">Quick Download</h3>
+            <div class="flex flex-wrap gap-3 mb-4">
+                <a href="/api/scrcpy/download-package" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium inline-flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download Full Package (scrcpy + agent)
+                </a>
+                <a href="/api/scrcpy/download-agent" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg text-sm font-medium inline-flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download Agent Only
+                </a>
+            </div>
+            <p class="text-xs text-gray-500">Full package includes: scrcpy.exe, adb.exe, DLLs, client_agent.py, setup_agent.bat (~15 MB)</p>
+        </div>
+
+        <!-- How to Setup Card -->
+        <div id="setupGuide" class="card rounded-xl p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4">Setup Guide</h3>
+            <div class="space-y-3 text-sm text-gray-600">
+                <div class="flex items-start gap-3">
+                    <span class="flex-shrink-0 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-xs font-bold">A</span>
+                    <div>
+                        <p class="font-medium text-gray-900">Clientless (Recommended)</p>
+                        <ol class="list-decimal list-inside mt-1 space-y-1 text-gray-500">
+                            <li>Download "Full Package" above and extract to any folder</li>
+                            <li>Run <code class="bg-gray-100 px-1.5 py-0.5 rounded">setup_agent.bat</code></li>
+                            <li>Enter the server URL when prompted (e.g. <code class="bg-gray-100 px-1.5 py-0.5 rounded">http://192.168.1.100:8000</code>)</li>
+                            <li>Scrcpy will auto-install to <code class="bg-gray-100 px-1.5 py-0.5 rounded">%AppData%\Local\Temp\SCRCPY</code></li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="border-t border-gray-200 my-3"></div>
+                <div class="flex items-start gap-3">
+                    <span class="flex-shrink-0 w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">B</span>
+                    <div>
+                        <p class="font-medium text-gray-900">Manual Setup</p>
+                        <ol class="list-decimal list-inside mt-1 space-y-1 text-gray-500">
+                            <li>Download "Agent Only" and save to your PC</li>
+                            <li>Install: <code class="bg-gray-100 px-1.5 py-0.5 rounded">pip install fastapi uvicorn</code></li>
+                            <li>Run: <code class="bg-gray-100 px-1.5 py-0.5 rounded">python client_agent.py --server http://server:8000</code></li>
+                            <li>Scrcpy will auto-download from server on first run</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Section -->
+        <div class="card rounded-xl p-6 mt-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Activity Log</h3>
+                <button onclick="clearLog()" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">
+                    Clear
+                </button>
+            </div>
+            <div id="logContainer" class="bg-gray-100 rounded-lg p-4 max-h-64 overflow-y-auto font-mono text-sm text-gray-600">
+                <p class="text-gray-500">No activity yet.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let agentUrl = localStorage.getItem('scrcpyAgentUrl') || 'http://localhost:18080';
+        let agentConnected = false;
+        let activeSessions = [];
+
+        // Initialize
+        document.getElementById('agentUrl').value = agentUrl;
+        renderQuickConnect();
+        loadUserInfo();
+        checkAgent();
+        loadAgents();
+
+        // Periodic checks
+        setInterval(checkAgent, 15000);
+        setInterval(loadAgents, 10000);
+
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/auth/me');
+                if (response.ok) {
+                    const user = await response.json();
+                    document.getElementById('userName').textContent = user.display_name || user.username;
+                    document.getElementById('userRole').textContent = user.role || 'User';
+                    document.getElementById('userInitial').textContent = (user.display_name || user.username || 'A').charAt(0).toUpperCase();
+                }
+            } catch (e) {}
+        }
+
+        async function checkAgent() {
+            const url = agentUrl;
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch(`${url}/api/status`, { signal: controller.signal });
+                clearTimeout(timeout);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    agentConnected = true;
+                    activeSessions = data.active_sessions || [];
+
+                    // Update UI
+                    document.getElementById('agentDot').className = 'agent-status-dot online';
+                    document.getElementById('agentStatusText').textContent = 'Connected';
+                    document.getElementById('agentStatusText').className = 'text-green-600';
+                    document.getElementById('agentInfo').classList.remove('hidden');
+                    document.getElementById('setupGuide').classList.add('hidden');
+
+                    document.getElementById('agentVersion').textContent = data.version || '-';
+                    document.getElementById('agentScrcpy').textContent = data.scrcpy_exists ? 'OK' : 'Not Found';
+                    document.getElementById('agentScrcpy').className = data.scrcpy_exists ? 'font-medium text-green-600' : 'font-medium text-red-600';
+                    document.getElementById('agentAdb').textContent = data.adb_exists ? 'OK' : 'Not Found';
+                    document.getElementById('agentAdb').className = data.adb_exists ? 'font-medium text-green-600' : 'font-medium text-red-600';
+                    document.getElementById('agentSessions').textContent = activeSessions.length;
+
+                    // Show install dir
+                    const installDir = data.install_dir || '-';
+                    document.getElementById('agentInstallDir').textContent = installDir;
+                    document.getElementById('agentInstallDir').title = installDir;
+
+                    // Show/hide remote install button
+                    const needsInstall = !data.scrcpy_exists || !data.adb_exists;
+                    document.getElementById('remoteInstallSection').classList.toggle('hidden', !needsInstall);
+
+                    return;
+                }
+            } catch (e) {}
+
+            // Offline
+            agentConnected = false;
+            activeSessions = [];
+            document.getElementById('agentDot').className = 'agent-status-dot offline';
+            document.getElementById('agentStatusText').textContent = 'Not Connected';
+            document.getElementById('agentStatusText').className = 'text-red-600';
+            document.getElementById('agentInfo').classList.add('hidden');
+            document.getElementById('setupGuide').classList.remove('hidden');
+        }
+
+        function connectAgent() {
+            const url = document.getElementById('agentUrl').value.trim().replace(/\/+$/, '');
+            if (!url) return;
+            agentUrl = url;
+            localStorage.setItem('scrcpyAgentUrl', agentUrl);
+            addLog(`Connecting to ${agentUrl}...`);
+            checkAgent();
+        }
+
+        async function remoteInstallScrcpy() {
+            if (!agentConnected) {
+                addLog('Agent not connected', 'error');
+                return;
+            }
+            const btn = document.getElementById('installBtn');
+            btn.textContent = 'Installing...';
+            btn.disabled = true;
+            addLog('Downloading scrcpy from server to client...');
+
+            try {
+                const response = await fetch(`${agentUrl}/api/install`, { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    addLog(data.message, 'success');
+                    await checkAgent();
+                } else {
+                    addLog(`Install failed: ${data.message}`, 'error');
+                }
+            } catch (e) {
+                addLog(`Install error: ${e.message}`, 'error');
+            } finally {
+                btn.textContent = 'Install Scrcpy';
+                btn.disabled = false;
+            }
+        }
+
+        // Activity Log
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('logContainer');
+            const firstChild = container.querySelector('p.text-gray-500');
+            if (firstChild && firstChild.textContent === 'No activity yet.') {
+                container.innerHTML = '';
+            }
+
+            const colors = {
+                info: 'text-gray-600',
+                success: 'text-green-600',
+                error: 'text-red-600',
+                warn: 'text-yellow-600'
+            };
+            const time = new Date().toLocaleTimeString();
+            const line = document.createElement('p');
+            line.className = colors[type] || colors.info;
+            line.textContent = `[${time}] ${message}`;
+            container.appendChild(line);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = '<p class="text-gray-500">No activity yet.</p>';
+        }
+
+        async function loadAgents() {
+            try {
+                const response = await fetch('/api/scrcpy/agents');
+                if (!response.ok) return;
+                const data = await response.json();
+                const agents = data.agents || [];
+                const onlineCount = agents.filter(a => a.online).length;
+                document.getElementById('agentCount').textContent = `${onlineCount} online / ${agents.length} total`;
+
+                const tbody = document.getElementById('agentsBody');
+                if (agents.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="py-4 text-center text-gray-500">No agents detected yet</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = agents.map(a => {
+                    const dot = a.online
+                        ? '<span class="inline-block w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"></span>'
+                        : '<span class="inline-block w-2.5 h-2.5 rounded-full bg-gray-500"></span>';
+                    const statusText = a.online ? 'Online' : `Offline (${a.elapsed_seconds}s)`;
+                    const scrcpyBadge = a.scrcpy_exists
+                        ? '<span class="text-green-600">OK</span>'
+                        : '<span class="text-red-600">Missing</span>';
+                    const sessions = a.active_sessions.length > 0
+                        ? a.active_sessions.join(', ')
+                        : '-';
+                    const lastSeen = new Date(a.last_heartbeat).toLocaleTimeString();
+                    return `<tr class="border-b border-gray-200 hover:bg-gray-100/30 ${a.online ? '' : 'opacity-50'}">
+                        <td class="py-2">${dot} <span class="ml-1 text-xs">${statusText}</span></td>
+                        <td class="py-2 font-medium">${a.hostname}</td>
+                        <td class="py-2 font-mono text-xs">${a.ip}</td>
+                        <td class="py-2">${a.port}</td>
+                        <td class="py-2">${scrcpyBadge}</td>
+                        <td class="py-2 text-xs">${sessions}</td>
+                        <td class="py-2 text-xs text-gray-500">${lastSeen}</td>
+                        <td class="py-2">
+                            <button onclick="selectAgent('${a.ip}', ${a.port})" class="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 rounded" ${a.online ? '' : 'disabled'}>
+                                Connect
+                            </button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {}
+        }
+
+        function selectAgent(ip, port) {
+            const url = `http://${ip}:${port}`;
+            document.getElementById('agentUrl').value = url;
+            agentUrl = url;
+            localStorage.setItem('scrcpyAgentUrl', agentUrl);
+            addLog(`Selected agent: ${url}`, 'info');
+            checkAgent();
+        }
+
+        function getQuickConnectCommand() {
+            const serverUrl = window.location.origin;
+            return `$ProgressPreference='SilentlyContinue'; $d="$env:LOCALAPPDATA\\Temp\\SCRCPY"; New-Item -ItemType Directory -Force -Path $d | Out-Null; Invoke-WebRequest -Uri "${serverUrl}/api/scrcpy/download-package" -OutFile "$d\\scrcpy.zip" -UseBasicParsing; Expand-Archive -Path "$d\\scrcpy.zip" -DestinationPath $d -Force; Remove-Item "$d\\scrcpy.zip"; cd "$d\\SCRCPY"; .\\client_agent.exe --server ${serverUrl}`;
+        }
+
+        function getBatContent() {
+            const serverUrl = window.location.origin;
+            return [
+                '@echo off',
+                'chcp 65001 >nul 2>&1',
+                'title Scrcpy Client Agent - Quick Connect',
+                'echo ============================================',
+                'echo   Scrcpy Client Agent - Quick Connect',
+                `echo   Server: ${serverUrl}`,
+                'echo ============================================',
+                'echo.',
+                '',
+                'set "INSTALL_DIR=%LOCALAPPDATA%\\Temp\\SCRCPY"',
+                `set "SERVER_URL=${serverUrl}"`,
+                '',
+                ':: Force reinstall if called with --reinstall',
+                'if "%~1"=="--reinstall" (',
+                '    echo Reinstalling... removing old files.',
+                '    rmdir /s /q "%INSTALL_DIR%\\SCRCPY" 2>nul',
+                '    goto :install',
+                ')',
+                '',
+                ':: Check if already installed',
+                'if exist "%INSTALL_DIR%\\SCRCPY\\client_agent.exe" (',
+                '    echo Found existing installation. Starting agent...',
+                '    goto :run_agent',
+                ')',
+                '',
+                ':install',
+                '',
+                ':: Create directory',
+                'echo [1/3] Creating install directory...',
+                'if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"',
+                '',
+                ':: Download package',
+                'echo [2/3] Downloading scrcpy package from server...',
+                `powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%SERVER_URL%/api/scrcpy/download-package' -OutFile '%INSTALL_DIR%\\scrcpy.zip' -UseBasicParsing"`,
+                'if errorlevel 1 (',
+                '    echo [ERROR] Download failed. Check server connection: %SERVER_URL%',
+                '    pause',
+                '    exit /b 1',
+                ')',
+                '',
+                ':: Extract',
+                'echo [3/3] Extracting...',
+                `powershell -Command "Expand-Archive -Path '%INSTALL_DIR%\\scrcpy.zip' -DestinationPath '%INSTALL_DIR%' -Force"`,
+                'del "%INSTALL_DIR%\\scrcpy.zip" >nul 2>&1',
+                '',
+                ':: Verify',
+                'if not exist "%INSTALL_DIR%\\SCRCPY\\client_agent.exe" (',
+                '    echo [ERROR] client_agent.exe not found after extraction.',
+                '    echo         Please build it first: python build_exe.py',
+                '    echo         Or use setup_agent.bat with Python instead.',
+                '    pause',
+                '    exit /b 1',
+                ')',
+                '',
+                ':run_agent',
+                'echo.',
+                'echo ============================================',
+                'echo   Starting Client Agent on port 18080...',
+                'echo   Keep this window open!',
+                'echo   Press CTRL+C to stop.',
+                'echo ============================================',
+                'echo.',
+                'cd /d "%INSTALL_DIR%\\SCRCPY"',
+                'client_agent.exe --server %SERVER_URL%',
+                '',
+                'echo.',
+                'echo Agent stopped.',
+                'pause',
+            ].join('\r\n');
+        }
+
+        function renderQuickConnect() {
+            document.getElementById('quickConnectCmd').textContent = getQuickConnectCommand();
+        }
+
+        function downloadQuickConnect() {
+            const content = getBatContent();
+            const blob = new Blob([content], { type: 'application/bat' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'quick_connect.bat';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            addLog('Downloaded quick_connect.bat', 'success');
+        }
+
+        async function copyQuickConnect() {
+            const cmd = getQuickConnectCommand();
+            try {
+                await navigator.clipboard.writeText(cmd);
+                const btn = document.getElementById('copyBtn');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copied!';
+                btn.classList.replace('bg-gray-200', 'bg-green-600');
+                setTimeout(() => {
+                    btn.innerHTML = orig;
+                    btn.classList.replace('bg-green-600', 'bg-gray-200');
+                }, 2000);
+            } catch (e) {
+                const el = document.getElementById('quickConnectCmd');
+                el.parentElement.open = true;
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>

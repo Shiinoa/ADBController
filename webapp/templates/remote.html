@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Control - {{ ip }}</title>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .screen-container {
+            position: relative;
+            display: inline-block;
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #screen {
+            cursor: crosshair;
+            max-height: 70vh;
+            width: auto;
+        }
+        .control-btn {
+            @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+            @apply bg-gray-200 hover:bg-gray-300 text-white;
+            @apply active:scale-95;
+        }
+        .control-btn:hover {
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+        }
+        .nav-btn {
+            @apply w-14 h-14 rounded-full flex items-center justify-center;
+            @apply bg-gray-200 hover:bg-green-600 text-white text-xl;
+            @apply transition-all duration-200 active:scale-90;
+        }
+        .dpad {
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left ok right"
+                ". down .";
+            gap: 4px;
+        }
+        .dpad .up { grid-area: up; }
+        .dpad .down { grid-area: down; }
+        .dpad .left { grid-area: left; }
+        .dpad .right { grid-area: right; }
+        .dpad .ok { grid-area: ok; }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-4 py-3">
+        <div class="flex items-center justify-between max-w-7xl mx-auto">
+            <div class="flex items-center gap-4">
+                <a href="/control" class="text-gray-500 hover:text-gray-900">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                </a>
+                <h1 class="text-xl font-bold">Remote Control</h1>
+                <span class="text-gray-500">{{ ip }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <div id="status" class="flex items-center gap-2">
+                    <div class="status-dot bg-yellow-500" id="statusDot"></div>
+                    <span id="statusText" class="text-sm">Connecting...</span>
+                </div>
+                <button onclick="launchScrcpy()" class="control-btn bg-green-600 hover:bg-green-700">
+                    Launch Scrcpy (Real-time)
+                </button>
+                <button onclick="toggleConnection()" id="connectBtn" class="control-btn bg-green-600 hover:bg-green-700">
+                    Disconnect
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4">
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Screen Display -->
+            <div class="flex-1">
+                <div class="screen-container shadow-2xl">
+                    <img id="screen" src="" alt="Device Screen" onclick="handleClick(event)"
+                         class="border-4 border-gray-200 rounded-lg">
+                    <div id="loadingOverlay" class="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-80">
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+                            <p>Loading screen...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 text-sm text-gray-500">
+                    <span id="screenInfo">Screen: -- x --</span>
+                    <span class="mx-2">|</span>
+                    <span id="fpsInfo">FPS: --</span>
+                    <span class="mx-2">|</span>
+                    <span>Click on screen to tap</span>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="lg:w-80 space-y-4">
+                <!-- Navigation D-Pad -->
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-500 mb-3">Navigation</h3>
+                    <div class="dpad mx-auto w-fit">
+                        <button class="nav-btn up" onclick="sendKey(19)" title="Up">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                            </svg>
+                        </button>
+                        <button class="nav-btn left" onclick="sendKey(21)" title="Left">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <button class="nav-btn ok bg-green-600 hover:bg-green-700" onclick="sendKey(23)" title="OK/Select">
+                            OK
+                        </button>
+                        <button class="nav-btn right" onclick="sendKey(22)" title="Right">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                        <button class="nav-btn down" onclick="sendKey(20)" title="Down">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- System Buttons -->
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-500 mb-3">System</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button class="control-btn" onclick="sendKey(4)" title="Back">
+                            <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                            <span class="text-xs">Back</span>
+                        </button>
+                        <button class="control-btn" onclick="sendKey(3)" title="Home">
+                            <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                            <span class="text-xs">Home</span>
+                        </button>
+                        <button class="control-btn" onclick="sendKey(187)" title="Recent Apps">
+                            <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            </svg>
+                            <span class="text-xs">Recent</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Media Controls -->
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-500 mb-3">Media</h3>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button class="control-btn" onclick="sendKey(89)" title="Rewind">RW</button>
+                        <button class="control-btn" onclick="sendKey(85)" title="Play/Pause">Play</button>
+                        <button class="control-btn" onclick="sendKey(86)" title="Stop">Stop</button>
+                        <button class="control-btn" onclick="sendKey(90)" title="Fast Forward">FF</button>
+                    </div>
+                </div>
+
+                <!-- Volume Controls -->
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-500 mb-3">Volume</h3>
+                    <div class="flex gap-2 justify-center">
+                        <button class="control-btn flex-1" onclick="sendKey(25)" title="Volume Down">
+                            <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5 9v6h4l5 5V4L9 9H5z"/>
+                            </svg>
+                            Vol -
+                        </button>
+                        <button class="control-btn" onclick="sendKey(164)" title="Mute">
+                            <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                            </svg>
+                        </button>
+                        <button class="control-btn flex-1" onclick="sendKey(24)" title="Volume Up">
+                            <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 9v6h4l5 5V4L9 9H5z"/>
+                            </svg>
+                            Vol +
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Power Controls -->
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-500 mb-3">Power</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="control-btn" onclick="sendKey(224)" title="Wake Screen">Wake</button>
+                        <button class="control-btn" onclick="sendKey(223)" title="Sleep Screen">Sleep</button>
+                        <button class="control-btn bg-red-600 hover:bg-red-700" onclick="sendKey(26)" title="Power">Power</button>
+                        <button class="control-btn" onclick="sendKey(82)" title="Menu">Menu</button>
+                    </div>
+                </div>
+
+                <!-- Text Input -->
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-500 mb-3">Text Input</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="textInput" placeholder="Type text..."
+                               class="flex-1 px-3 py-2 bg-gray-200 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <button class="control-btn bg-green-600 hover:bg-green-700" onclick="sendText()">Send</button>
+                    </div>
+                    <div class="mt-2 flex gap-2">
+                        <button class="control-btn flex-1 text-sm" onclick="sendKey(67)" title="Backspace">Del</button>
+                        <button class="control-btn flex-1 text-sm" onclick="sendKey(66)" title="Enter">Enter</button>
+                    </div>
+                </div>
+
+                <!-- System Info & Status -->
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-500 mb-3">System Info & Status</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="control-btn text-sm" onclick="remoteDeviceAction('check_screen')">Screen Status</button>
+                        <button class="control-btn text-sm" onclick="remoteDeviceAction('check_memory')">RAM/Storage</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button class="control-btn text-sm" onclick="remoteDeviceAction('full_info')">Full Info</button>
+                        <button class="control-btn text-sm" onclick="remoteHealthCheck()">Health Check</button>
+                    </div>
+                </div>
+
+                <!-- App & Install -->
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-500 mb-3">App & Install</h3>
+                    <div class="space-y-2">
+                        <button class="control-btn w-full text-sm" onclick="remoteOpenApp()">Open MachineMonitor</button>
+                        <button class="control-btn w-full text-sm bg-cyan-700 hover:bg-cyan-600" onclick="remoteInstallApk()">Install APK...</button>
+                        <input type="file" id="apkFileInput" accept=".apk" class="hidden" onchange="handleApkUpload(this)">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="control-btn text-sm" onclick="remoteClearAppData()">Clear Data</button>
+                            <button class="control-btn text-sm" onclick="remoteCheckAppStatus()">App Status</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Display -->
+                <div id="resultPanel" class="bg-white rounded-lg p-4 hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-medium text-gray-500">Result</h3>
+                        <button onclick="document.getElementById('resultPanel').classList.add('hidden')" class="text-gray-500 hover:text-gray-900 text-xs">Close</button>
+                    </div>
+                    <pre id="resultContent" class="text-xs text-gray-600 whitespace-pre-wrap max-h-48 overflow-y-auto bg-gray-50 rounded p-2"></pre>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scrcpy Lock Warning Modal -->
+    <div id="scrcpyLockModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-yellow-400">Device In Use</h3>
+                    <p class="text-sm text-gray-500">This device is currently locked</p>
+                </div>
+            </div>
+            <div id="lockDetails" class="bg-gray-200 rounded p-3 mb-4 text-sm">
+                <p><span class="text-gray-500">Locked by:</span> <span id="lockedBy" class="text-white font-medium">-</span></p>
+                <p><span class="text-gray-500">Type:</span> <span id="lockType" class="text-white">-</span></p>
+                <p><span class="text-gray-500">Since:</span> <span id="lockedAt" class="text-white">-</span></p>
+                <p><span class="text-gray-500">Expires:</span> <span id="expiresAt" class="text-white">-</span></p>
+            </div>
+            <p class="text-gray-600 mb-4 text-sm">
+                Opening scrcpy on this device may cause conflicts with the current user's session.
+            </p>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeScrcpyLockModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition">
+                    Cancel
+                </button>
+                <button onclick="forceOpenScrcpy()" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg transition">
+                    Open Anyway
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ip = "{{ ip }}";
+        let ws = null;
+        let connected = false;
+        let screenWidth = 1920;
+        let screenHeight = 1080;
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+
+        // Connect to WebSocket
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/remote/${ip}`);
+
+            ws.onopen = () => {
+                connected = true;
+                updateStatus('connected');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'screen_size') {
+                    screenWidth = data.width;
+                    screenHeight = data.height;
+                    document.getElementById('screenInfo').textContent = `Screen: ${screenWidth} x ${screenHeight}`;
+                } else if (data.type === 'frame') {
+                    const screen = document.getElementById('screen');
+                    screen.src = `data:image/png;base64,${data.data}`;
+                    document.getElementById('loadingOverlay').style.display = 'none';
+
+                    // Update FPS counter
+                    frameCount++;
+                    const now = Date.now();
+                    if (now - lastFpsTime >= 1000) {
+                        document.getElementById('fpsInfo').textContent = `FPS: ${frameCount}`;
+                        frameCount = 0;
+                        lastFpsTime = now;
+                    }
+                } else if (data.type === 'error') {
+                    console.error('Remote error:', data.message);
+                    // Show error in UI
+                    const overlay = document.getElementById('loadingOverlay');
+                    overlay.style.display = 'flex';
+                    overlay.innerHTML = `
+                        <div class="text-center">
+                            <div class="text-red-500 text-4xl mb-4">⚠️</div>
+                            <p class="text-red-400 font-medium">${data.message}</p>
+                            <p class="text-gray-500 text-sm mt-2">Check if device is authorized and connected</p>
+                        </div>
+                    `;
+                }
+            };
+
+            ws.onclose = () => {
+                connected = false;
+                updateStatus('disconnected');
+                // Attempt to reconnect after 3 seconds (only if tab is visible)
+                if (!document.hidden) {
+                    setTimeout(() => {
+                        if (!connected) connect();
+                    }, 3000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateStatus('error');
+            };
+        }
+
+        function updateStatus(status) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const btn = document.getElementById('connectBtn');
+
+            switch(status) {
+                case 'connected':
+                    dot.className = 'status-dot bg-green-500';
+                    text.textContent = 'Connected';
+                    btn.textContent = 'Disconnect';
+                    break;
+                case 'disconnected':
+                    dot.className = 'status-dot bg-red-500';
+                    text.textContent = 'Disconnected';
+                    btn.textContent = 'Connect';
+                    document.getElementById('loadingOverlay').style.display = 'flex';
+                    break;
+                case 'error':
+                    dot.className = 'status-dot bg-yellow-500';
+                    text.textContent = 'Error';
+                    break;
+                default:
+                    dot.className = 'status-dot bg-yellow-500';
+                    text.textContent = 'Connecting...';
+            }
+        }
+
+        function toggleConnection() {
+            if (connected && ws) {
+                ws.close();
+            } else {
+                connect();
+            }
+        }
+
+        // Launch native scrcpy window for real-time remote
+        async function launchScrcpy() {
+            try {
+                // Check if device is locked
+                const lockResponse = await fetch(`/api/devices/locks/${ip}`);
+                const lockData = await lockResponse.json();
+
+                if (lockData.locked) {
+                    showScrcpyLockWarning(lockData.lock);
+                    return;
+                }
+
+                // No lock - acquire lock and launch
+                await acquireLockAndLaunch();
+            } catch (e) {
+                console.error('Lock check error:', e);
+                // If lock check fails, try to launch directly
+                await directLaunchScrcpy();
+            }
+        }
+
+        function showScrcpyLockWarning(lockInfo) {
+            document.getElementById('lockedBy').textContent = lockInfo.locked_by || '-';
+            document.getElementById('lockType').textContent = lockInfo.lock_type || '-';
+            document.getElementById('lockedAt').textContent = lockInfo.locked_at ?
+                new Date(lockInfo.locked_at).toLocaleString('th-TH') : '-';
+            document.getElementById('expiresAt').textContent = lockInfo.expires_at ?
+                new Date(lockInfo.expires_at).toLocaleString('th-TH') : '-';
+            document.getElementById('scrcpyLockModal').classList.remove('hidden');
+        }
+
+        function closeScrcpyLockModal() {
+            document.getElementById('scrcpyLockModal').classList.add('hidden');
+        }
+
+        async function forceOpenScrcpy() {
+            closeScrcpyLockModal();
+            await directLaunchScrcpy();
+        }
+
+        async function acquireLockAndLaunch() {
+            try {
+                // Acquire lock before launching
+                const lockResponse = await fetch(`/api/devices/locks/${ip}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ lock_type: 'scrcpy', duration_minutes: 30 })
+                });
+                const lockResult = await lockResponse.json();
+
+                if (!lockResult.success && lockResult.current_lock) {
+                    // Someone else got the lock - show warning
+                    showScrcpyLockWarning(lockResult.current_lock);
+                    return;
+                }
+
+                // Launch scrcpy
+                await directLaunchScrcpy();
+            } catch (e) {
+                console.error('Acquire lock error:', e);
+                await directLaunchScrcpy();
+            }
+        }
+
+        // ============================================
+        // Client Agent Detection (native scrcpy on client PCs)
+        // ============================================
+        let clientAgentAvailable = false;
+        let clientAgentUrl = localStorage.getItem('scrcpyAgentUrl') || `http://${window.location.hostname}:18080`;
+
+        async function checkClientAgent() {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch(`${clientAgentUrl}/api/status`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+                if (response.ok) {
+                    const data = await response.json();
+                    clientAgentAvailable = data.scrcpy_exists && data.adb_exists;
+                }
+            } catch (e) {
+                clientAgentAvailable = false;
+            }
+        }
+
+        // Check on load
+        checkClientAgent();
+
+        async function directLaunchScrcpy() {
+            // Re-read agent URL in case user changed it
+            clientAgentUrl = localStorage.getItem('scrcpyAgentUrl') || `http://${window.location.hostname}:18080`;
+
+            if (!clientAgentAvailable) {
+                await checkClientAgent();
+                if (!clientAgentAvailable) {
+                    alert('Scrcpy Agent is not connected.\nSet up the agent on the Scrcpy Agent page first.');
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`${clientAgentUrl}/api/launch/${ip}`, { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Scrcpy launched! Check agent PC desktop.');
+                } else {
+                    alert('Failed to launch scrcpy: ' + data.message);
+                }
+            } catch (e) {
+                console.error('Launch scrcpy error:', e);
+                alert('Scrcpy Agent is unreachable.');
+            }
+        }
+
+        // Handle click on screen
+        function handleClick(event) {
+            const img = event.target;
+            const rect = img.getBoundingClientRect();
+
+            // Calculate actual position on device screen
+            const scaleX = screenWidth / img.clientWidth;
+            const scaleY = screenHeight / img.clientHeight;
+
+            const x = Math.round((event.clientX - rect.left) * scaleX);
+            const y = Math.round((event.clientY - rect.top) * scaleY);
+
+            console.log(`Tap at: ${x}, ${y}`);
+            sendTap(x, y);
+
+            // Visual feedback
+            showTapFeedback(event.clientX, event.clientY);
+        }
+
+        function showTapFeedback(x, y) {
+            const feedback = document.createElement('div');
+            feedback.className = 'fixed w-8 h-8 bg-indigo-500 rounded-full opacity-50 pointer-events-none';
+            feedback.style.left = (x - 16) + 'px';
+            feedback.style.top = (y - 16) + 'px';
+            feedback.style.transition = 'all 0.3s ease-out';
+            document.body.appendChild(feedback);
+
+            setTimeout(() => {
+                feedback.style.transform = 'scale(2)';
+                feedback.style.opacity = '0';
+                setTimeout(() => feedback.remove(), 300);
+            }, 50);
+        }
+
+        // API Calls
+        async function sendTap(x, y) {
+            try {
+                await fetch('/api/remote/tap', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ip, x, y})
+                });
+            } catch (e) {
+                console.error('Tap error:', e);
+            }
+        }
+
+        async function sendKey(keycode) {
+            try {
+                await fetch('/api/remote/key', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ip, keycode})
+                });
+            } catch (e) {
+                console.error('Key error:', e);
+            }
+        }
+
+        async function sendText() {
+            const input = document.getElementById('textInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            try {
+                await fetch('/api/remote/text', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ip, text})
+                });
+                input.value = '';
+            } catch (e) {
+                console.error('Text error:', e);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Don't capture if typing in text input
+            if (e.target.id === 'textInput') {
+                if (e.key === 'Enter') {
+                    sendText();
+                    e.preventDefault();
+                }
+                return;
+            }
+
+            switch(e.key) {
+                case 'ArrowUp': sendKey(19); e.preventDefault(); break;
+                case 'ArrowDown': sendKey(20); e.preventDefault(); break;
+                case 'ArrowLeft': sendKey(21); e.preventDefault(); break;
+                case 'ArrowRight': sendKey(22); e.preventDefault(); break;
+                case 'Enter': sendKey(23); e.preventDefault(); break;
+                case 'Escape': sendKey(4); e.preventDefault(); break;
+                case 'Backspace': sendKey(67); e.preventDefault(); break;
+                case 'Home': sendKey(3); e.preventDefault(); break;
+            }
+        });
+
+        // ============================================
+        // System Info & App Management
+        // ============================================
+        function showResult(text) {
+            const panel = document.getElementById('resultPanel');
+            const content = document.getElementById('resultContent');
+            content.textContent = text;
+            panel.classList.remove('hidden');
+        }
+
+        async function remoteDeviceAction(mode) {
+            try {
+                const response = await fetch('/api/devices/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ips: [ip], mode: mode })
+                });
+                const data = await response.json();
+                if (data.results && data.results[ip]) {
+                    showResult(data.results[ip]);
+                } else {
+                    showResult(JSON.stringify(data, null, 2));
+                }
+            } catch (e) {
+                console.error('Device action error:', e);
+                alert('Action failed');
+            }
+        }
+
+        async function remoteHealthCheck() {
+            try {
+                const response = await fetch('/api/devices/health', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ips: [ip] })
+                });
+                const data = await response.json();
+                if (data.results && data.results[ip]) {
+                    showResult(JSON.stringify(data.results[ip], null, 2));
+                } else {
+                    showResult(JSON.stringify(data, null, 2));
+                }
+            } catch (e) {
+                console.error('Health check error:', e);
+                alert('Health check failed');
+            }
+        }
+
+        async function remoteOpenApp() {
+            try {
+                const response = await fetch('/api/app/open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ips: [ip] })
+                });
+                const data = await response.json();
+                showResult(JSON.stringify(data, null, 2));
+            } catch (e) {
+                alert('Open app failed');
+            }
+        }
+
+        async function remoteCheckAppStatus() {
+            try {
+                const response = await fetch('/api/app/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ips: [ip] })
+                });
+                const data = await response.json();
+                if (data.results && data.results[ip]) {
+                    showResult(JSON.stringify(data.results[ip], null, 2));
+                } else {
+                    showResult(JSON.stringify(data, null, 2));
+                }
+            } catch (e) {
+                alert('Check app status failed');
+            }
+        }
+
+        async function remoteClearAppData() {
+            if (!confirm('Clear app data on this device?')) return;
+            try {
+                const response = await fetch('/api/app/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ips: [ip] })
+                });
+                const data = await response.json();
+                showResult(JSON.stringify(data, null, 2));
+            } catch (e) {
+                alert('Clear data failed');
+            }
+        }
+
+        function remoteInstallApk() {
+            document.getElementById('apkFileInput').click();
+        }
+
+        async function handleApkUpload(input) {
+            if (!input.files || input.files.length === 0) return;
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+            formData.append('ips', ip);
+            try {
+                const response = await fetch('/api/app/install', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                showResult(JSON.stringify(data, null, 2));
+            } catch (e) {
+                alert('Install failed');
+            }
+            input.value = '';
+        }
+
+        // Pause/resume when tab visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Tab hidden - close WebSocket to stop streaming
+                if (ws) { ws.close(); }
+                console.log('[Visibility] Tab hidden - stopped streaming');
+            } else {
+                // Tab visible - reconnect
+                if (!connected) connect();
+                console.log('[Visibility] Tab visible - reconnecting');
+            }
+        });
+
+        // Initialize
+        connect();
+    </script>
+</body>
+</html>

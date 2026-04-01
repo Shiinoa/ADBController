@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automate - ADB Control Center</title>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .tab-btn.active { background: #A8DF8E; color: white; }
+        /* Flow builder */
+        .flow-column { min-width: 240px; max-width: 300px; }
+        .flow-node { transition: all 0.15s ease; border-left: 3px solid transparent; }
+        .flow-node:hover { transform: translateY(-1px); }
+        .flow-node.selected { border-color: #A8DF8E !important; box-shadow: 0 0 0 2px rgba(168,223,142,0.3); }
+        .flow-node.trigger { border-left-color: #f97316; }
+        .flow-node.condition { border-left-color: #8b5cf6; }
+        .flow-node.action { border-left-color: #A8DF8E; }
+        .flow-add-btn {
+            width: 100%; padding: 10px; border: 2px dashed #d1d5db; border-radius: 8px;
+            color: #9ca3af; text-align: center; cursor: pointer; transition: all 0.15s;
+            background: transparent;
+        }
+        .flow-add-btn:hover { border-color: #A8DF8E; color: #A8DF8E; background: rgba(168,223,142,0.05); }
+        .flow-arrow { stroke: #d1d5db; stroke-width: 2; fill: none; }
+        .config-panel { transition: transform 0.2s ease; }
+        .config-panel.hidden { transform: translateX(100%); }
+        /* Toggle switch */
+        .toggle-switch { position: relative; width: 44px; height: 24px; cursor: pointer; }
+        .toggle-switch input { display: none; }
+        .toggle-track { position: absolute; inset: 0; background: #d1d5db; border-radius: 9999px; transition: background 0.2s; }
+        .toggle-switch input:checked + .toggle-track { background: #A8DF8E; }
+        .toggle-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .toggle-switch input:checked ~ .toggle-knob { transform: translateX(20px); }
+        /* Workflow card */
+        .wf-card { transition: all 0.15s; border: 1px solid #e5e7eb; }
+        .wf-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+        /* Node picker */
+        .node-picker-item { cursor: pointer; transition: all 0.15s; }
+        .node-picker-item:hover { background: #f0fdf4; border-color: #A8DF8E; }
+        /* Log Cards */
+        .log-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #fff;
+            transition: all 0.15s ease;
+            overflow: hidden;
+        }
+        .log-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-1px); }
+        .log-card-header {
+            padding: 14px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .log-card-header:hover { background: #fafafa; }
+        .log-card .status-dot {
+            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+        }
+        .log-card .status-dot.success { background: #A8DF8E; box-shadow: 0 0 6px rgba(168,223,142,0.4); }
+        .log-card .status-dot.failed { background: #F63049; box-shadow: 0 0 6px rgba(246,48,73,0.3); }
+        .log-card .status-dot.skipped { background: #9ca3af; }
+        .log-card .status-dot.partial { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.3); }
+        .log-card-detail {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            border-top: 0 solid transparent;
+        }
+        .log-card-detail.open {
+            max-height: 600px;
+            border-top: 1px solid #f3f4f6;
+        }
+        .log-card-detail-inner { padding: 16px; }
+        .log-card .expand-chevron {
+            transition: transform 0.2s;
+            color: #d1d5db;
+            flex-shrink: 0;
+        }
+        .log-card .expand-chevron.open { transform: rotate(180deg); color: #6b7280; }
+        .node-step { position: relative; padding-left: 28px; }
+        .node-step::before {
+            content: '';
+            position: absolute; left: 8px; top: 24px; bottom: -8px;
+            width: 2px; background: #e5e7eb;
+        }
+        .node-step:last-child::before { display: none; }
+        .node-step-dot {
+            position: absolute; left: 3px; top: 6px;
+            width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #e5e7eb;
+        }
+        .node-step-dot.passed { background: #A8DF8E; box-shadow: 0 0 0 1px #A8DF8E; }
+        .node-step-dot.success { background: #A8DF8E; box-shadow: 0 0 0 1px #A8DF8E; }
+        .node-step-dot.failed { background: #F63049; box-shadow: 0 0 0 1px #F63049; }
+        .node-step-dot.skipped { background: #9ca3af; box-shadow: 0 0 0 1px #9ca3af; }
+        /* Stats mini cards */
+        .log-stats-card {
+            background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+            padding: 12px 16px; text-align: center; min-width: 100px;
+        }
+        .log-stats-card .stat-num { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
+        <div class="flex items-center gap-3 mb-8 p-2">
+            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-bold">ADB Control</h1>
+                <p class="text-xs text-gray-500">TV Management</p>
+            </div>
+        </div>
+
+        <nav class="space-y-2">
+            <a href="/dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                Dashboard
+            </a>
+            <a href="/control" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                Control Panel
+            </a>
+            <a href="/multiview" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                Multi-View
+            </a>
+            <a href="/devices" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                TV Devices
+            </a>
+            <a href="/reports" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Daily Reports
+            </a>
+            <a href="/documents" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                Documents
+            </a>
+            <a href="/report-form" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Report Form
+            </a>
+            <a href="/automate" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Automate
+            </a>
+            <a href="/settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Settings
+            </a>
+            <a href="/scrcpy-agent" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Scrcpy Agent
+            </a>
+        </nav>
+
+        <div class="absolute bottom-4 left-4 right-4">
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-100">
+                <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold text-white" id="userInitial">A</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium" id="userName">Admin</p>
+                    <p class="text-xs text-gray-500" id="userRole">Administrator</p>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-gray-900">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-64 p-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold">Automation</h2>
+                <p class="text-sm text-gray-500">Create workflows to auto-resolve device issues</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="engineStatus" class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500">Engine: Loading...</span>
+                <button onclick="showTab('workflows')" class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium" data-tab="workflows">Workflows</button>
+                <button onclick="showTab('builder')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200" data-tab="builder">Builder</button>
+                <button onclick="showTab('logs')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200" data-tab="logs">Logs</button>
+            </div>
+        </div>
+
+        <!-- Tab: Workflows List -->
+        <div id="tab-workflows">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-sm text-gray-500"><span id="wfCount">0</span> workflows</p>
+                <button onclick="createNewWorkflow()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium">
+                    + New Workflow
+                </button>
+            </div>
+            <div id="workflowList" class="space-y-3">
+                <div class="text-center py-12 text-gray-400">
+                    <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <p>No workflows yet</p>
+                    <p class="text-sm mt-1">Create your first automation workflow</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Flow Builder (hidden by default) -->
+        <div id="tab-builder" class="hidden">
+            <!-- Builder Header -->
+            <div class="card rounded-xl p-4 mb-4">
+                <div class="flex items-center gap-4">
+                    <button onclick="cancelEdit()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    </button>
+                    <input type="text" id="wfName" placeholder="Workflow name" class="flex-1 text-lg font-medium bg-transparent border-none outline-none" value="New Workflow">
+                    <input type="text" id="wfDescription" placeholder="Description (optional)" class="flex-1 text-sm text-gray-500 bg-transparent border-none outline-none">
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <label>Cooldown:</label>
+                        <input type="number" id="wfCooldown" value="5" min="1" max="1440" class="w-16 px-2 py-1 bg-gray-100 rounded text-center">
+                        <span>min</span>
+                    </div>
+                    <button onclick="saveWorkflow()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium">Save</button>
+                </div>
+            </div>
+
+            <!-- Device Scope -->
+            <div class="card rounded-xl p-4 mb-4">
+                <h3 class="text-sm font-semibold mb-3">Device Scope</h3>
+                <div class="flex items-center gap-4 mb-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="deviceScope" value="all" checked onchange="toggleDeviceSelect()">
+                        <span class="text-sm">All Devices</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="deviceScope" value="plant" onchange="toggleDeviceSelect()">
+                        <span class="text-sm">By Plant</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="deviceScope" value="selected" onchange="toggleDeviceSelect()">
+                        <span class="text-sm">Select Devices</span>
+                    </label>
+                </div>
+                <div id="plantSelectArea" class="hidden mb-3">
+                    <label class="block text-sm text-gray-500 mb-2">Plant</label>
+                    <select id="workflowPlantSelect" class="w-full max-w-sm px-3 py-2 bg-gray-100 rounded-lg">
+                        <option value="">Select plant</option>
+                    </select>
+                </div>
+                <div id="deviceSelectArea" class="hidden">
+                    <div class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 bg-gray-50 rounded-lg" id="deviceCheckboxes">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow Canvas -->
+            <div class="card rounded-xl p-6 mb-4">
+                <h3 class="text-sm font-semibold mb-4">Flow</h3>
+                <div id="flowCanvas" class="flex items-start gap-4 overflow-x-auto pb-4">
+                    <!-- Triggers Column -->
+                    <div class="flow-column flex-shrink-0">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-3 h-3 rounded-full bg-orange-400"></div>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase">Trigger</h4>
+                        </div>
+                        <div id="trigger-nodes" class="space-y-2 mb-2"></div>
+                        <button onclick="openNodePicker('trigger')" class="flow-add-btn text-sm">+ Add Trigger</button>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="flex items-center pt-8 flex-shrink-0">
+                        <svg width="40" height="24"><path d="M0,12 L30,12" stroke="#d1d5db" stroke-width="2" fill="none"/><polygon points="28,6 40,12 28,18" fill="#d1d5db"/></svg>
+                    </div>
+
+                    <!-- Conditions Column -->
+                    <div class="flow-column flex-shrink-0">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-3 h-3 rounded-full bg-purple-400"></div>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase">Conditions <span class="font-normal">(optional)</span></h4>
+                        </div>
+                        <div id="condition-nodes" class="space-y-2 mb-2"></div>
+                        <button onclick="openNodePicker('condition')" class="flow-add-btn text-sm">+ Add Condition</button>
+                    </div>
+
+                    <!-- Arrow -->
+                    <div class="flex items-center pt-8 flex-shrink-0">
+                        <svg width="40" height="24"><path d="M0,12 L30,12" stroke="#d1d5db" stroke-width="2" fill="none"/><polygon points="28,6 40,12 28,18" fill="#d1d5db"/></svg>
+                    </div>
+
+                    <!-- Actions Column -->
+                    <div class="flow-column flex-shrink-0">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase">Actions</h4>
+                        </div>
+                        <div id="action-nodes" class="space-y-2 mb-2"></div>
+                        <button onclick="openNodePicker('action')" class="flow-add-btn text-sm">+ Add Action</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Logs -->
+        <div id="tab-logs" class="hidden">
+            <!-- Stats Row -->
+            <div class="flex items-center gap-3 mb-4 flex-wrap">
+                <div class="log-stats-card">
+                    <div class="stat-num" id="statTotal" style="color:var(--text-primary);">0</div>
+                    <div class="text-xs text-gray-400 mt-1">Total</div>
+                </div>
+                <div class="log-stats-card">
+                    <div class="stat-num" id="statSuccess" style="color:#65AD4A;">0</div>
+                    <div class="text-xs text-gray-400 mt-1">Success</div>
+                </div>
+                <div class="log-stats-card">
+                    <div class="stat-num" id="statFailed" style="color:#F63049;">0</div>
+                    <div class="text-xs text-gray-400 mt-1">Failed</div>
+                </div>
+                <div class="log-stats-card">
+                    <div class="stat-num" id="statRate" style="color:var(--text-secondary);">0%</div>
+                    <div class="text-xs text-gray-400 mt-1">Rate</div>
+                </div>
+                <div class="log-stats-card" style="border:none;background:transparent;padding:4px 0;">
+                    <div class="text-xs text-gray-400">Retention: 30 days</div>
+                </div>
+            </div>
+
+            <!-- Filters Row -->
+            <div class="flex items-center gap-3 mb-4 flex-wrap">
+                <input type="text" id="logSearch" placeholder="Search IP or workflow name..."
+                       oninput="filterAndRenderLogs()"
+                       class="px-3 py-2 bg-white border rounded-lg text-sm flex-1" style="min-width:180px; max-width:280px; border-color:#e5e7eb;">
+                <select id="logFilterWorkflow" onchange="loadLogs()" class="px-3 py-2 bg-white border rounded-lg text-sm">
+                    <option value="">All Workflows</option>
+                </select>
+                <select id="logFilterStatus" onchange="loadLogs()" class="px-3 py-2 bg-white border rounded-lg text-sm">
+                    <option value="">All Status</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                    <option value="skipped">Skipped</option>
+                    <option value="partial">Partial</option>
+                </select>
+                <select id="logFilterDate" onchange="loadLogs()" class="px-3 py-2 bg-white border rounded-lg text-sm">
+                    <option value="">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                </select>
+                <div style="flex:1;"></div>
+                <label class="text-xs text-gray-400">Per page:</label>
+                <select id="logPageSize" onchange="changeLogPageSize()" class="px-2 py-1 bg-white border rounded text-xs" style="border-color:#e5e7eb;">
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
+            <!-- Log Cards Container -->
+            <div id="logCardsContainer" class="space-y-3">
+                <div class="text-center py-12 text-gray-400">
+                    <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <p>No execution logs yet</p>
+                    <p class="text-sm mt-1">Logs will appear when workflows execute</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div id="logPaginationBar" class="flex items-center justify-between mt-4 pt-3 border-t" style="border-color:#e5e7eb;">
+                <span class="text-sm text-gray-400" id="logPageInfo">-</span>
+                <div class="flex items-center gap-1" id="logPageButtons"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Node Picker Modal -->
+    <div id="nodePickerModal" class="hidden fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+        <div class="card rounded-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold" id="nodePickerTitle">Add Node</h3>
+                <button onclick="closeNodePicker()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="nodePickerList" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Node Config Modal -->
+    <div id="nodeConfigModal" class="hidden fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+        <div class="card rounded-xl p-6 w-full max-w-md">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold" id="nodeConfigTitle">Configure Node</h3>
+                <button onclick="closeNodeConfig()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="nodeConfigBody" class="space-y-4"></div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeNodeConfig()" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancel</button>
+                <button onclick="applyNodeConfig()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Detail Modal (kept for backward compat, hidden) -->
+    <div id="logDetailModal" class="hidden"></div>
+
+    <script>
+        // ==========================================
+        // State
+        // ==========================================
+        let currentUser = null;
+        let workflows = [];
+        let allDevices = [];
+        let allPlants = [];
+        let editingWorkflowId = null; // null = new, string = editing existing
+        let flowNodes = []; // Current flow nodes [{id, category, type, config, connections}]
+        let selectedNodeId = null;
+        let pickerCategory = null;
+        let logsCache = {}; // id -> log object for detail view
+        let allLogs = []; // all fetched logs (before client-side filtering)
+        let logCurrentPage = 1;
+        let logPageSize = 20;
+
+        // Actions that run once at workflow level (not per-device)
+        const WORKFLOW_LEVEL_ACTIONS = new Set(['send_daily_report']);
+
+        // Node type definitions
+        const NODE_TYPES = {
+            trigger: [
+                { type: 'schedule', label: 'Schedule', desc: 'Run at interval (every X min/hrs)', icon: '&#128338;', color: 'orange' },
+                { type: 'event_app_stopped', label: 'App Stopped', desc: 'When app process stops running', icon: '&#9724;', color: 'orange' },
+                { type: 'event_offline', label: 'Device Offline', desc: 'When device goes offline', icon: '&#128308;', color: 'orange' },
+                { type: 'event_high_cache', label: 'High Cache', desc: 'When app cache exceeds threshold', icon: '&#128229;', color: 'orange' },
+            ],
+            condition: [
+                { type: 'consecutive_failures_gt', label: 'Failures > N', desc: 'Consecutive failures exceed N', icon: '&#10060;', color: 'purple' },
+                { type: 'cache_gt', label: 'Cache > X MB', desc: 'Cache exceeds X megabytes', icon: '&#128229;', color: 'purple' },
+                { type: 'ram_lt', label: 'RAM < X MB', desc: 'Free RAM below threshold', icon: '&#128187;', color: 'purple' },
+                { type: 'storage_lt', label: 'Storage < X GB', desc: 'Free storage below threshold', icon: '&#128190;', color: 'purple' },
+            ],
+            action: [
+                { type: 'restart_app', label: 'Restart App', desc: 'Launch/restart the monitored app', icon: '&#9654;', color: 'green' },
+                { type: 'reboot_device', label: 'Reboot Device', desc: 'Reboot the Android device', icon: '&#128260;', color: 'green' },
+                { type: 'clear_cache', label: 'Clear Cache', desc: 'Clear app cache data', icon: '&#128465;', color: 'green' },
+                { type: 'clear_app_data', label: 'Clear App Data', desc: 'Clear all app data (reset)', icon: '&#9888;', color: 'green' },
+                { type: 'send_email', label: 'Send Email', desc: 'Send email alert notification', icon: '&#9993;', color: 'green' },
+                { type: 'send_syno_chat', label: 'Interchat', desc: 'Send Interchat message', icon: '&#128172;', color: 'green' },
+                { type: 'run_health_check', label: 'Health Check', desc: 'Run full device health check', icon: '&#129657;', color: 'green' },
+                { type: 'wake_device', label: 'Wake Device', desc: 'Turn device screen on', icon: '&#9728;', color: 'green' },
+                { type: 'sleep_device', label: 'Sleep Device', desc: 'Turn device screen off', icon: '&#127769;', color: 'green' },
+                { type: 'send_daily_report', label: 'Daily Report', desc: 'Send daily status report via email', icon: '&#128202;', color: 'green' },
+            ]
+        };
+
+        const TRIGGER_LABELS = {
+            'schedule': 'Schedule', 'event_app_stopped': 'App Stopped',
+            'event_offline': 'Offline', 'event_high_cache': 'High Cache',
+            'event_low_ram': 'Low RAM', 'manual_test': 'Manual Test'
+        };
+
+        const STATUS_COLORS = {
+            'success': 'bg-green-100 text-green-700',
+            'failed': 'bg-red-100 text-red-700',
+            'skipped': 'bg-gray-100 text-gray-600',
+            'partial': 'bg-yellow-100 text-yellow-700'
+        };
+
+        // ==========================================
+        // Tab Management
+        // ==========================================
+        function showTab(tab) {
+            document.getElementById('tab-workflows').classList.toggle('hidden', tab !== 'workflows');
+            document.getElementById('tab-builder').classList.toggle('hidden', tab !== 'builder');
+            document.getElementById('tab-logs').classList.toggle('hidden', tab !== 'logs');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const isActive = btn.dataset.tab === tab;
+                btn.classList.toggle('active', isActive);
+                btn.classList.toggle('bg-gray-200', !isActive);
+            });
+
+            if (tab === 'logs') loadLogs();
+        }
+
+        // ==========================================
+        // Workflow CRUD
+        // ==========================================
+        async function loadWorkflows() {
+            try {
+                const res = await fetch('/api/automation/workflows');
+                const data = await res.json();
+                workflows = data.workflows || [];
+                renderWorkflowList();
+            } catch (e) {
+                console.error('Failed to load workflows:', e);
+            }
+        }
+
+        function renderWorkflowList() {
+            const container = document.getElementById('workflowList');
+            document.getElementById('wfCount').textContent = workflows.length;
+
+            if (!workflows.length) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-400">
+                        <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <p>No workflows yet</p>
+                        <p class="text-sm mt-1">Create your first automation workflow</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = workflows.map(wf => {
+                const triggers = (wf.nodes || []).filter(n => n.category === 'trigger').map(n => TRIGGER_LABELS[n.type] || n.type);
+                const actions = (wf.nodes || []).filter(n => n.category === 'action').map(n => {
+                    const def = NODE_TYPES.action.find(d => d.type === n.type);
+                    return def ? def.label : n.type;
+                });
+                const scopeMode = wf.device_scope?.mode || 'all';
+                const scope = scopeMode === 'all'
+                    ? 'All devices'
+                    : scopeMode === 'plant'
+                        ? `Plant: ${wf.device_scope?.plant_id || '-'}`
+                        : `${(wf.device_scope?.ips || []).length} devices`;
+                const lastRun = wf.last_triggered_at ? new Date(wf.last_triggered_at).toLocaleString() : 'Never';
+                const enabled = wf.enabled;
+
+                return `
+                <div class="wf-card rounded-xl p-4 bg-white">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h3 class="font-medium truncate">${escHtml(wf.name)}</h3>
+                                ${enabled ? '<span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">Active</span>' : '<span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">Disabled</span>'}
+                            </div>
+                            <p class="text-xs text-gray-400 mb-2">${escHtml(wf.description || '')}</p>
+                            <div class="flex flex-wrap gap-1">
+                                ${triggers.map(t => `<span class="px-2 py-0.5 text-xs rounded bg-orange-50 text-orange-600">${t}</span>`).join('')}
+                                ${actions.map(a => `<span class="px-2 py-0.5 text-xs rounded bg-green-50 text-green-600">${a}</span>`).join('')}
+                            </div>
+                            <div class="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                                <span>${scope}</span>
+                                <span>Runs: ${wf.trigger_count || 0}</span>
+                                <span>Last: ${lastRun}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <label class="toggle-switch" title="${enabled ? 'Disable' : 'Enable'}">
+                                <input type="checkbox" ${enabled ? 'checked' : ''} onchange="toggleWorkflow('${wf.id}')">
+                                <span class="toggle-track"></span>
+                                <span class="toggle-knob"></span>
+                            </label>
+                            <button onclick="editWorkflow('${wf.id}')" class="p-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-gray-50" title="Edit">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <button onclick="testWorkflow('${wf.id}')" class="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-gray-50" title="Dry Run Test">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </button>
+                            <button onclick="deleteWorkflow('${wf.id}')" class="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-50" title="Delete">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function toggleWorkflow(id) {
+            try {
+                const res = await fetch(`/api/automation/workflows/${id}/toggle`, { method: 'POST' });
+                if (!res.ok) { showToast('Failed to toggle workflow', 'error'); return; }
+                await loadWorkflows();
+            } catch (e) { showToast('Network error', 'error'); }
+        }
+
+        async function deleteWorkflow(id) {
+            if (!confirm('Delete this workflow?')) return;
+            try {
+                const res = await fetch(`/api/automation/workflows/${id}`, { method: 'DELETE' });
+                if (!res.ok) { showToast('Failed to delete workflow', 'error'); return; }
+                await loadWorkflows();
+                showToast('Workflow deleted', 'success');
+            } catch (e) { showToast('Network error', 'error'); }
+        }
+
+        async function testWorkflow(id) {
+            try {
+                const res = await fetch(`/api/automation/workflows/${id}/test`, { method: 'POST' });
+                const data = await res.json();
+                showToast(data.message || 'Dry run completed', data.success ? 'success' : 'error');
+            } catch (e) { showToast('Test failed: network error', 'error'); }
+        }
+
+        // ==========================================
+        // Flow Builder
+        // ==========================================
+        function createNewWorkflow() {
+            editingWorkflowId = null;
+            flowNodes = [];
+            document.getElementById('wfName').value = 'New Workflow';
+            document.getElementById('wfDescription').value = '';
+            document.getElementById('wfCooldown').value = '5';
+            document.querySelector('input[name="deviceScope"][value="all"]').checked = true;
+            document.getElementById('workflowPlantSelect').value = '';
+            toggleDeviceSelect();
+            renderFlowNodes();
+            showTab('builder');
+        }
+
+        function editWorkflow(id) {
+            const wf = workflows.find(w => w.id === id);
+            if (!wf) return;
+            editingWorkflowId = id;
+            flowNodes = JSON.parse(JSON.stringify(wf.nodes || []));
+            document.getElementById('wfName').value = wf.name;
+            document.getElementById('wfDescription').value = wf.description || '';
+            document.getElementById('wfCooldown').value = wf.cooldown_minutes || 5;
+
+            const scope = wf.device_scope || {};
+            document.querySelector(`input[name="deviceScope"][value="${scope.mode || 'all'}"]`).checked = true;
+            toggleDeviceSelect();
+
+            if (scope.mode === 'plant') {
+                document.getElementById('workflowPlantSelect').value = scope.plant_id || '';
+            }
+
+            if (scope.mode === 'selected' && scope.ips) {
+                setTimeout(() => {
+                    scope.ips.forEach(ip => {
+                        const cb = document.querySelector(`#deviceCheckboxes input[value="${ip}"]`);
+                        if (cb) cb.checked = true;
+                    });
+                }, 100);
+            }
+
+            renderFlowNodes();
+            showTab('builder');
+        }
+
+        function cancelEdit() {
+            editingWorkflowId = null;
+            flowNodes = [];
+            showTab('workflows');
+        }
+
+        async function saveWorkflow() {
+            const name = document.getElementById('wfName').value.trim();
+            if (!name) { showToast('Please enter a workflow name', 'error'); return; }
+
+            const triggers = flowNodes.filter(n => n.category === 'trigger');
+            const actions = flowNodes.filter(n => n.category === 'action');
+            if (!triggers.length) { showToast('Add at least one trigger', 'error'); return; }
+            if (!actions.length) { showToast('Add at least one action', 'error'); return; }
+
+            const scopeMode = document.querySelector('input[name="deviceScope"]:checked').value;
+            const selectedIps = [];
+            let selectedPlantId = '';
+            if (scopeMode === 'selected') {
+                document.querySelectorAll('#deviceCheckboxes input:checked').forEach(cb => selectedIps.push(cb.value));
+                if (!selectedIps.length) { showToast('Select at least one device', 'error'); return; }
+            } else if (scopeMode === 'plant') {
+                selectedPlantId = document.getElementById('workflowPlantSelect').value;
+                if (!selectedPlantId) { showToast('Select a plant', 'error'); return; }
+            }
+
+            const body = {
+                name: name,
+                description: document.getElementById('wfDescription').value.trim(),
+                cooldown_minutes: parseInt(document.getElementById('wfCooldown').value) || 5,
+                device_scope: { mode: scopeMode, ips: selectedIps, plant_id: selectedPlantId || null },
+                nodes: flowNodes.map(n => ({
+                    id: n.id, category: n.category, type: n.type,
+                    config: n.config || {}, connections: n.connections || []
+                }))
+            };
+
+            const url = editingWorkflowId
+                ? `/api/automation/workflows/${editingWorkflowId}`
+                : '/api/automation/workflows';
+            const method = editingWorkflowId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+            });
+
+            if (res.ok) {
+                showToast('Workflow saved', 'success');
+                await loadWorkflows();
+                showTab('workflows');
+            } else {
+                const err = await res.json();
+                showToast(err.detail || 'Save failed', 'error');
+            }
+        }
+
+        // ==========================================
+        // Flow Node Management
+        // ==========================================
+        function renderFlowNodes() {
+            ['trigger', 'condition', 'action'].forEach(cat => {
+                const container = document.getElementById(`${cat}-nodes`);
+                const nodes = flowNodes.filter(n => n.category === cat);
+                container.innerHTML = nodes.map(n => {
+                    const allTypes = NODE_TYPES[cat] || [];
+                    const def = allTypes.find(d => d.type === n.type) || {};
+                    const configSummary = getConfigSummary(n);
+                    const isWfLevel = WORKFLOW_LEVEL_ACTIONS.has(n.type);
+                    const scopeBadge = isWfLevel
+                        ? '<span class="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-500 whitespace-nowrap">All Devices</span>'
+                        : '';
+                    return `
+                    <div class="flow-node ${cat} card rounded-lg p-3 cursor-pointer" data-node-id="${n.id}" onclick="openNodeConfig('${n.id}')">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">${def.icon || '?'}</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <p class="text-sm font-medium">${def.label || n.type}</p>
+                                    ${scopeBadge}
+                                </div>
+                                <p class="text-xs text-gray-400 truncate">${configSummary}</p>
+                            </div>
+                            <button onclick="removeNode('${n.id}', event)" class="text-gray-300 hover:text-red-400 p-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+            });
+        }
+
+        function getConfigSummary(node) {
+            const c = node.config || {};
+            switch (node.type) {
+                case 'schedule':
+                    if (c.mode === 'daily_time') return `Daily at ${c.time || '08:00'}`;
+                    return `Every ${c.interval || 60} ${c.unit || 'minutes'}`;
+                case 'event_app_stopped': return 'On app process stop';
+                case 'event_offline': return 'On device disconnect';
+                case 'event_high_cache': return `Cache > ${c.threshold_mb || 100} MB`;
+                case 'consecutive_failures_gt': return `Failures > ${c.value || 3}`;
+                case 'cache_gt': return `Cache > ${c.value || 100} MB`;
+                case 'ram_lt': return `RAM < ${c.value || 300} MB`;
+                case 'storage_lt': return `Storage < ${c.value || 0.5} GB`;
+                case 'restart_app': return c.package || 'Default package';
+                case 'clear_cache': return c.package || 'Default package';
+                case 'clear_app_data': return c.package || 'Default package';
+                case 'send_email': return c.subject || 'Alert email';
+                case 'send_syno_chat': return c.message ? c.message.substring(0, 30) + '...' : 'Chat alert';
+                case 'send_daily_report': return c.template_id ? 'Custom template' : 'Default template';
+                default: return 'Click to configure';
+            }
+        }
+
+        function removeNode(id, event) {
+            event.stopPropagation();
+            flowNodes = flowNodes.filter(n => n.id !== id);
+            renderFlowNodes();
+        }
+
+        // ==========================================
+        // Node Picker Modal
+        // ==========================================
+        function openNodePicker(category) {
+            pickerCategory = category;
+            const types = NODE_TYPES[category] || [];
+            document.getElementById('nodePickerTitle').textContent = `Add ${category.charAt(0).toUpperCase() + category.slice(1)}`;
+            document.getElementById('nodePickerList').innerHTML = types.map(t => {
+                const isWfLevel = WORKFLOW_LEVEL_ACTIONS.has(t.type);
+                const badge = isWfLevel
+                    ? '<span class="ml-auto px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-600 whitespace-nowrap">All Devices</span>'
+                    : (category === 'action' && !isWfLevel ? '<span class="ml-auto px-2 py-0.5 text-xs rounded-full bg-gray-50 text-gray-400 whitespace-nowrap">Per Device</span>' : '');
+                return `
+                <div class="node-picker-item border rounded-lg p-3 flex items-center gap-3" onclick="addNode('${category}', '${t.type}')">
+                    <span class="text-2xl">${t.icon}</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-sm">${t.label}</p>
+                        <p class="text-xs text-gray-400">${t.desc}</p>
+                    </div>
+                    ${badge}
+                </div>`;
+            }).join('');
+            document.getElementById('nodePickerModal').classList.remove('hidden');
+        }
+
+        function closeNodePicker() {
+            document.getElementById('nodePickerModal').classList.add('hidden');
+        }
+
+        function addNode(category, type) {
+            const id = 'n_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+            const defaultConfig = getDefaultConfig(type);
+            flowNodes.push({ id, category, type, config: defaultConfig, connections: [] });
+            renderFlowNodes();
+            closeNodePicker();
+        }
+
+        function getDefaultConfig(type) {
+            switch (type) {
+                case 'schedule': return { mode: 'interval', interval: 60, unit: 'minutes', time: '08:00' };
+                case 'event_high_cache': return { threshold_mb: 100 };
+                case 'consecutive_failures_gt': return { value: 3 };
+                case 'cache_gt': return { value: 100 };
+                case 'ram_lt': return { value: 300 };
+                case 'storage_lt': return { value: 0.5 };
+                case 'restart_app': case 'clear_cache': case 'clear_app_data': return { package: 'asd.kce.machinemonitor' };
+                case 'send_email': return { subject: '[Auto] {device_name} ({ip}) - {trigger}' };
+                case 'send_syno_chat': return { message: 'Auto Alert: {device_name}: {ip} - {trigger} at {time}' };
+                case 'send_daily_report': return { template_id: '', subject: '' };
+                default: return {};
+            }
+        }
+
+        // ==========================================
+        // Node Config Modal
+        // ==========================================
+        function openNodeConfig(nodeId) {
+            const node = flowNodes.find(n => n.id === nodeId);
+            if (!node) return;
+            selectedNodeId = nodeId;
+
+            const allTypes = NODE_TYPES[node.category] || [];
+            const def = allTypes.find(d => d.type === node.type) || {};
+            document.getElementById('nodeConfigTitle').textContent = `Configure: ${def.label || node.type}`;
+
+            const body = document.getElementById('nodeConfigBody');
+            const c = node.config || {};
+
+            let html = '';
+            switch (node.type) {
+                case 'schedule':
+                    const schedMode = c.mode || 'interval';
+                    html = `
+                        <div>
+                            <label class="block text-sm text-gray-500 mb-2">Schedule Mode</label>
+                            <div class="flex gap-3 mb-4">
+                                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border ${schedMode === 'interval' ? 'border-green-400 bg-green-50' : 'border-gray-200'}" onclick="toggleScheduleMode('interval')">
+                                    <input type="radio" name="schedMode" value="interval" ${schedMode === 'interval' ? 'checked' : ''} onchange="toggleScheduleMode('interval')">
+                                    <span class="text-sm font-medium">Interval</span>
+                                    <span class="text-xs text-gray-400">Every X min/hrs</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border ${schedMode === 'daily_time' ? 'border-green-400 bg-green-50' : 'border-gray-200'}" onclick="toggleScheduleMode('daily_time')">
+                                    <input type="radio" name="schedMode" value="daily_time" ${schedMode === 'daily_time' ? 'checked' : ''} onchange="toggleScheduleMode('daily_time')">
+                                    <span class="text-sm font-medium">Daily at Time</span>
+                                    <span class="text-xs text-gray-400">Run once/day</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="schedIntervalSection" class="${schedMode === 'daily_time' ? 'hidden' : ''}">
+                            <label class="block text-sm text-gray-500 mb-1">Interval</label>
+                            <div class="flex gap-2">
+                                <input type="number" id="cfg_interval" value="${c.interval || 60}" min="1" class="flex-1 px-3 py-2 bg-gray-100 rounded-lg">
+                                <select id="cfg_unit" class="px-3 py-2 bg-gray-100 rounded-lg">
+                                    <option value="minutes" ${c.unit === 'minutes' ? 'selected' : ''}>Minutes</option>
+                                    <option value="hours" ${c.unit === 'hours' ? 'selected' : ''}>Hours</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="schedTimeSection" class="${schedMode !== 'daily_time' ? 'hidden' : ''}">
+                            <label class="block text-sm text-gray-500 mb-1">Time</label>
+                            <input type="time" id="cfg_time" value="${c.time || '08:00'}" class="w-full px-3 py-2 bg-gray-100 rounded-lg">
+                            <p class="text-xs text-gray-400 mt-1">Workflow will run once per day at this time</p>
+                        </div>`;
+                    break;
+                case 'event_high_cache':
+                    html = `<div><label class="block text-sm text-gray-500 mb-1">Cache Threshold (MB)</label>
+                        <input type="number" id="cfg_threshold_mb" value="${c.threshold_mb || 100}" min="1" class="w-full px-3 py-2 bg-gray-100 rounded-lg"></div>`;
+                    break;
+                case 'event_low_ram':
+                    html = `<div><label class="block text-sm text-gray-500 mb-1">RAM Threshold (MB)</label>
+                        <input type="number" id="cfg_threshold_mb" value="${c.threshold_mb || 300}" min="1" class="w-full px-3 py-2 bg-gray-100 rounded-lg">
+                        <p class="text-xs text-gray-400 mt-1">Note: RAM data requires health check. Works with schedule-based workflows.</p></div>`;
+                    break;
+                case 'consecutive_failures_gt': case 'cache_gt':
+                    html = `<div><label class="block text-sm text-gray-500 mb-1">Value</label>
+                        <input type="number" id="cfg_value" value="${c.value || 3}" min="1" class="w-full px-3 py-2 bg-gray-100 rounded-lg"></div>`;
+                    break;
+                case 'ram_lt':
+                    html = `<div><label class="block text-sm text-gray-500 mb-1">RAM Threshold (MB)</label>
+                        <input type="number" id="cfg_value" value="${c.value || 300}" min="1" class="w-full px-3 py-2 bg-gray-100 rounded-lg"></div>`;
+                    break;
+                case 'storage_lt':
+                    html = `<div><label class="block text-sm text-gray-500 mb-1">Storage Threshold (GB)</label>
+                        <input type="number" id="cfg_value" value="${c.value || 0.5}" min="0.1" step="0.1" class="w-full px-3 py-2 bg-gray-100 rounded-lg"></div>`;
+                    break;
+                case 'restart_app': case 'clear_cache': case 'clear_app_data':
+                    html = `<div><label class="block text-sm text-gray-500 mb-1">Package Name</label>
+                        <input type="text" id="cfg_package" value="${c.package || 'asd.kce.machinemonitor'}" class="w-full px-3 py-2 bg-gray-100 rounded-lg"></div>`;
+                    break;
+                case 'send_email':
+                    html = `<div><label class="block text-sm text-gray-500 mb-1">Subject Template</label>
+                        <input type="text" id="cfg_subject" value="${escHtml(c.subject || '')}" class="w-full px-3 py-2 bg-gray-100 rounded-lg">
+                        <p class="text-xs text-gray-400 mt-1">Variables: {device_name}, {asset_name}, {ip}, {location}, {work_center}, {plant_id}, {project}, {model}, {manufacturer}, {serial}, {status}, {online}, {app_status}, {cache_mb}, {failures}, {workflow_name}, {trigger}, {date}, {time}, {timestamp}</p></div>`;
+                    break;
+                case 'send_syno_chat':
+                    html = `<div><label class="block text-sm text-gray-500 mb-1">Message Template</label>
+                        <textarea id="cfg_message" rows="3" class="w-full px-3 py-2 bg-gray-100 rounded-lg">${escHtml(c.message || '')}</textarea>
+                        <p class="text-xs text-gray-400 mt-1">Variables: {device_name}, {asset_name}, {ip}, {location}, {work_center}, {plant_id}, {project}, {model}, {manufacturer}, {serial}, {status}, {online}, {app_status}, {cache_mb}, {failures}, {workflow_name}, {trigger}, {date}, {time}, {timestamp}</p></div>`;
+                    break;
+                case 'send_daily_report':
+                    html = '<div class="text-sm text-gray-400">Loading templates...</div>';
+                    fetch('/api/report-templates').then(r => r.json()).then(data => {
+                        const templates = data.templates || [];
+                        let opts = '<option value="">Default (built-in)</option>';
+                        templates.forEach(t => {
+                            const sel = t.id === c.template_id ? 'selected' : '';
+                            opts += `<option value="${t.id}" ${sel}>${escHtml(t.name)}</option>`;
+                        });
+                        body.innerHTML = `
+                            <div><label class="block text-sm text-gray-500 mb-1">Report Template</label>
+                                <select id="cfg_template_id" class="w-full px-3 py-2 bg-gray-100 rounded-lg">${opts}</select>
+                                <p class="text-xs text-gray-400 mt-2">Select a template created in Report Form page, or use default format</p>
+                            </div>
+                            <div class="mt-3"><label class="block text-sm text-gray-500 mb-1">Custom Subject (optional)</label>
+                                <input type="text" id="cfg_subject" value="${escHtml(c.subject || '')}"
+                                       placeholder="[Daily Report] TV Monitor Status"
+                                       class="w-full px-3 py-2 bg-gray-100 rounded-lg">
+                                <p class="text-xs text-gray-400 mt-1">Leave empty to use default subject</p>
+                            </div>`;
+                    }).catch(() => {
+                        body.innerHTML = '<p class="text-sm text-red-500">Failed to load templates</p>';
+                    });
+                    break;
+                default:
+                    html = '<p class="text-sm text-gray-400">No configuration needed for this node.</p>';
+            }
+            body.innerHTML = html;
+            document.getElementById('nodeConfigModal').classList.remove('hidden');
+        }
+
+        function toggleScheduleMode(mode) {
+            document.getElementById('schedIntervalSection').classList.toggle('hidden', mode === 'daily_time');
+            document.getElementById('schedTimeSection').classList.toggle('hidden', mode !== 'daily_time');
+            // Update radio button visual styles
+            document.querySelectorAll('input[name="schedMode"]').forEach(r => {
+                const label = r.closest('label');
+                if (r.value === mode) {
+                    label.classList.add('border-green-400', 'bg-green-50');
+                    label.classList.remove('border-gray-200');
+                    r.checked = true;
+                } else {
+                    label.classList.remove('border-green-400', 'bg-green-50');
+                    label.classList.add('border-gray-200');
+                }
+            });
+        }
+
+        function closeNodeConfig() {
+            document.getElementById('nodeConfigModal').classList.add('hidden');
+            selectedNodeId = null;
+        }
+
+        function applyNodeConfig() {
+            const node = flowNodes.find(n => n.id === selectedNodeId);
+            if (!node) { closeNodeConfig(); return; }
+
+            switch (node.type) {
+                case 'schedule':
+                    node.config.mode = document.querySelector('input[name="schedMode"]:checked')?.value || 'interval';
+                    node.config.interval = parseInt(document.getElementById('cfg_interval').value) || 60;
+                    node.config.unit = document.getElementById('cfg_unit').value;
+                    node.config.time = document.getElementById('cfg_time').value || '08:00';
+                    break;
+                case 'event_high_cache': case 'event_low_ram':
+                    node.config.threshold_mb = parseInt(document.getElementById('cfg_threshold_mb').value) || 100;
+                    break;
+                case 'consecutive_failures_gt': case 'cache_gt': case 'ram_lt': case 'storage_lt':
+                    node.config.value = parseFloat(document.getElementById('cfg_value').value) || 0;
+                    break;
+                case 'restart_app': case 'clear_cache': case 'clear_app_data':
+                    node.config.package = document.getElementById('cfg_package').value;
+                    break;
+                case 'send_email':
+                    node.config.subject = document.getElementById('cfg_subject').value;
+                    break;
+                case 'send_syno_chat':
+                    node.config.message = document.getElementById('cfg_message').value;
+                    break;
+                case 'send_daily_report':
+                    node.config.template_id = document.getElementById('cfg_template_id')?.value || '';
+                    node.config.subject = document.getElementById('cfg_subject')?.value || '';
+                    break;
+            }
+            renderFlowNodes();
+            closeNodeConfig();
+        }
+
+        // ==========================================
+        // Device Selector
+        // ==========================================
+        function toggleDeviceSelect() {
+            const mode = document.querySelector('input[name="deviceScope"]:checked').value;
+            document.getElementById('deviceSelectArea').classList.toggle('hidden', mode !== 'selected');
+            document.getElementById('plantSelectArea').classList.toggle('hidden', mode !== 'plant');
+        }
+
+        async function loadDevices() {
+            try {
+                const res = await fetch('/api/devices');
+                const data = await res.json();
+                allDevices = data.devices || [];
+                renderDeviceCheckboxes();
+            } catch (e) {
+                console.error('Failed to load devices:', e);
+            }
+        }
+
+        function renderDeviceCheckboxes() {
+            const container = document.getElementById('deviceCheckboxes');
+            container.innerHTML = allDevices.map(d => {
+                const ip = d['IP'] || '';
+                const name = d['Asset Name'] || ip;
+                return `<label class="flex items-center gap-2 px-3 py-1.5 bg-white rounded border text-sm cursor-pointer hover:border-green-300">
+                    <input type="checkbox" value="${ip}"> ${name} <span class="text-gray-400 text-xs">(${ip})</span>
+                </label>`;
+            }).join('');
+        }
+
+        async function loadPlants() {
+            try {
+                const res = await fetch('/api/plants');
+                if (!res.ok) {
+                    allPlants = [];
+                    renderPlantOptions();
+                    return;
+                }
+                const data = await res.json();
+                allPlants = data.plants || [];
+            } catch (e) {
+                console.error('Failed to load plants:', e);
+                allPlants = [];
+            }
+            renderPlantOptions();
+        }
+
+        function renderPlantOptions() {
+            const select = document.getElementById('workflowPlantSelect');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Select plant</option>' +
+                allPlants.map(plant => `<option value="${plant.code}">${plant.code} - ${plant.name}</option>`).join('');
+            if (allPlants.some(plant => plant.code === currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        // ==========================================
+        // Execution Logs
+        // ==========================================
+        async function loadLogs() {
+            try {
+                const wfFilter = document.getElementById('logFilterWorkflow').value;
+                let url = '/api/automation/logs?limit=500';
+                if (wfFilter) url += `&workflow_id=${wfFilter}`;
+
+                const res = await fetch(url);
+                const data = await res.json();
+                let logs = data.logs || [];
+
+                // Server-side status filter
+                const statusFilter = document.getElementById('logFilterStatus').value;
+                if (statusFilter) logs = logs.filter(l => l.status === statusFilter);
+
+                // Date filter (client-side)
+                const dateFilter = document.getElementById('logFilterDate').value;
+                if (dateFilter) {
+                    const now = new Date();
+                    let cutoff;
+                    if (dateFilter === 'today') {
+                        cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    } else if (dateFilter === '7d') {
+                        cutoff = new Date(now.getTime() - 7 * 86400000);
+                    } else if (dateFilter === '30d') {
+                        cutoff = new Date(now.getTime() - 30 * 86400000);
+                    }
+                    if (cutoff) logs = logs.filter(l => new Date(l.started_at) >= cutoff);
+                }
+
+                allLogs = logs;
+                logCurrentPage = 1;
+                // Clear search when filters change (except from filterAndRenderLogs)
+                filterAndRenderLogs();
+
+                // Load stats into cards
+                const statsRes = await fetch('/api/automation/logs/stats');
+                const stats = await statsRes.json();
+                document.getElementById('statTotal').textContent = stats.total_executions;
+                document.getElementById('statSuccess').textContent = stats.success_count;
+                document.getElementById('statFailed').textContent = stats.failed_count;
+                document.getElementById('statRate').textContent = stats.success_rate + '%';
+            } catch (e) {
+                console.error('Failed to load logs:', e);
+            }
+        }
+
+        function filterAndRenderLogs() {
+            const search = (document.getElementById('logSearch').value || '').toLowerCase().trim();
+
+            let filtered = allLogs;
+            if (search) {
+                filtered = allLogs.filter(l => {
+                    const ip = (l.device_ip || '').toLowerCase();
+                    const name = (l.workflow_name || '').toLowerCase();
+                    const trigger = (l.trigger_type || '').toLowerCase();
+                    return ip.includes(search) || name.includes(search) || trigger.includes(search);
+                });
+                logCurrentPage = 1;
+            }
+
+            // Paginate
+            const totalItems = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(totalItems / logPageSize));
+            if (logCurrentPage > totalPages) logCurrentPage = totalPages;
+            const startIdx = (logCurrentPage - 1) * logPageSize;
+            const pageItems = filtered.slice(startIdx, startIdx + logPageSize);
+
+            renderLogs(pageItems);
+            renderLogPagination(totalItems, totalPages);
+        }
+
+        function changeLogPageSize() {
+            logPageSize = parseInt(document.getElementById('logPageSize').value) || 20;
+            logCurrentPage = 1;
+            filterAndRenderLogs();
+        }
+
+        function goToLogPage(page) {
+            logCurrentPage = page;
+            filterAndRenderLogs();
+        }
+
+        function renderLogPagination(totalItems, totalPages) {
+            const info = document.getElementById('logPageInfo');
+            const btns = document.getElementById('logPageButtons');
+            if (!info || !btns) return;
+
+            if (totalItems === 0) {
+                info.textContent = '0 logs';
+                btns.innerHTML = '';
+                return;
+            }
+
+            const start = (logCurrentPage - 1) * logPageSize + 1;
+            const end = Math.min(logCurrentPage * logPageSize, totalItems);
+            info.textContent = `${start}-${end} of ${totalItems} logs`;
+
+            if (totalPages <= 1) { btns.innerHTML = ''; return; }
+
+            let html = '';
+            const bc = 'px-3 py-1 text-xs rounded';
+            const ac = 'bg-green-600 text-white font-medium';
+            const nc = 'bg-gray-100 hover:bg-gray-200 text-gray-700';
+            const dc = 'bg-gray-50 text-gray-300 cursor-not-allowed';
+
+            html += `<button onclick="goToLogPage(${logCurrentPage - 1})" class="${bc} ${logCurrentPage === 1 ? dc : nc}" ${logCurrentPage === 1 ? 'disabled' : ''}>&laquo;</button>`;
+
+            let sp = Math.max(1, logCurrentPage - 3);
+            let ep = Math.min(totalPages, sp + 6);
+            if (ep - sp < 6) sp = Math.max(1, ep - 6);
+
+            if (sp > 1) {
+                html += `<button onclick="goToLogPage(1)" class="${bc} ${nc}">1</button>`;
+                if (sp > 2) html += `<span class="px-1 text-gray-400">...</span>`;
+            }
+            for (let i = sp; i <= ep; i++) {
+                html += `<button onclick="goToLogPage(${i})" class="${bc} ${i === logCurrentPage ? ac : nc}">${i}</button>`;
+            }
+            if (ep < totalPages) {
+                if (ep < totalPages - 1) html += `<span class="px-1 text-gray-400">...</span>`;
+                html += `<button onclick="goToLogPage(${totalPages})" class="${bc} ${nc}">${totalPages}</button>`;
+            }
+
+            html += `<button onclick="goToLogPage(${logCurrentPage + 1})" class="${bc} ${logCurrentPage === totalPages ? dc : nc}" ${logCurrentPage === totalPages ? 'disabled' : ''}>&raquo;</button>`;
+
+            btns.innerHTML = html;
+        }
+
+        function renderLogs(logs) {
+            const container = document.getElementById('logCardsContainer');
+            logsCache = {};
+            logs.forEach(l => logsCache[l.id] = l);
+
+            if (!logs.length) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-400">
+                        <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <p>No logs found</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = logs.map(log => {
+                const time = new Date(log.started_at);
+                const timeStr = time.toLocaleString();
+                const relTime = getRelativeTime(time);
+                const trigger = TRIGGER_LABELS[log.trigger_type] || log.trigger_type;
+                const nodes = log.nodes_executed || [];
+                const actionNodes = nodes.filter(n => n.category === 'action');
+                const successNodes = actionNodes.filter(n => n.result === 'success').length;
+
+                // Build node steps HTML for the detail
+                const nodeStepsHtml = nodes.map(n => {
+                    const result = n.result || 'unknown';
+                    const dotClass = (result === 'success' || result === 'passed') ? 'passed' : result === 'failed' ? 'failed' : 'skipped';
+                    const nDef = findNodeDef(n.category, n.type);
+                    const icon = nDef ? nDef.icon : '?';
+                    const label = nDef ? nDef.label : n.type;
+                    const catColor = n.category === 'trigger' ? 'text-orange-500' : n.category === 'condition' ? 'text-purple-500' : 'text-green-600';
+                    return `
+                        <div class="node-step">
+                            <div class="node-step-dot ${dotClass}"></div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm">${icon}</span>
+                                <span class="text-sm font-medium">${label}</span>
+                                <span class="text-xs ${catColor}">${n.category}</span>
+                                <span class="text-xs text-gray-400 ml-auto">${n.message || result}</span>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                // Error section
+                const errorHtml = log.error_message
+                    ? `<div class="p-3 bg-red-50 text-red-700 rounded-lg text-sm mt-3">${escHtml(log.error_message)}</div>`
+                    : '';
+
+                // Trigger detail info
+                const td = log.trigger_detail || {};
+                const triggerDetailItems = [];
+                if (td.scope_label) triggerDetailItems.push(`Scope: ${td.scope_label}`);
+                if (td.app_status) triggerDetailItems.push(`App: ${td.app_status}`);
+                if (td.cache_mb) triggerDetailItems.push(`Cache: ${td.cache_mb}MB`);
+                if (td.consecutive_failures) triggerDetailItems.push(`Failures: ${td.consecutive_failures}`);
+                const triggerDetailHtml = triggerDetailItems.length
+                    ? `<div class="flex flex-wrap gap-2 mt-3">${triggerDetailItems.map(t => `<span class="text-xs px-2 py-1 bg-gray-100 rounded text-gray-500">${t}</span>`).join('')}</div>`
+                    : '';
+                const scopeBadge = td.scope_label
+                    ? `<span class="px-2 py-0.5 text-xs rounded bg-blue-50 text-blue-600">${escHtml(td.scope_label)}</span>`
+                    : '';
+
+                return `
+                <div class="log-card" data-log-id="${log.id}">
+                    <div class="log-card-header" onclick="toggleLogCard(${log.id})">
+                        <div class="status-dot ${log.status}"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-medium text-sm">${escHtml(log.workflow_name || 'Unknown')}</span>
+                                <span class="px-2 py-0.5 text-xs rounded bg-orange-50 text-orange-600">${trigger}</span>
+                                ${scopeBadge}
+                                <span class="px-2 py-0.5 text-xs rounded-full ${STATUS_COLORS[log.status] || 'bg-gray-100 text-gray-500'}">${log.status}</span>
+                            </div>
+                            <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                                ${log.device_ip === 'all devices'
+                                    ? '<span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 font-medium">All Devices</span>'
+                                    : `<span class="font-mono">${log.device_ip || ''}</span>`}
+                                <span>${relTime}</span>
+                                <span>${log.duration_ms || 0}ms</span>
+                                ${actionNodes.length ? `<span>${successNodes}/${actionNodes.length} actions ok</span>` : ''}
+                            </div>
+                        </div>
+                        <svg class="expand-chevron w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="log-card-detail" id="logDetail-${log.id}">
+                        <div class="log-card-detail-inner">
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-4">
+                                <div class="bg-gray-50 p-2.5 rounded-lg"><span class="text-gray-400">Time:</span> ${timeStr}</div>
+                                <div class="bg-gray-50 p-2.5 rounded-lg"><span class="text-gray-400">Duration:</span> ${log.duration_ms || 0}ms</div>
+                            </div>
+                            ${errorHtml}
+                            ${triggerDetailHtml}
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase mt-4 mb-3">Execution Flow</h4>
+                            <div class="space-y-2">
+                                ${nodeStepsHtml || '<p class="text-sm text-gray-400">No nodes recorded</p>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleLogCard(id) {
+            const detail = document.getElementById('logDetail-' + id);
+            const card = detail.closest('.log-card');
+            const chevron = card.querySelector('.expand-chevron');
+            const isOpen = detail.classList.contains('open');
+
+            // Close all others
+            document.querySelectorAll('.log-card-detail.open').forEach(el => {
+                el.classList.remove('open');
+                el.closest('.log-card').querySelector('.expand-chevron').classList.remove('open');
+            });
+
+            if (!isOpen) {
+                detail.classList.add('open');
+                chevron.classList.add('open');
+            }
+        }
+
+        function findNodeDef(category, type) {
+            const types = NODE_TYPES[category] || [];
+            return types.find(d => d.type === type) || null;
+        }
+
+        function getRelativeTime(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
+            if (diffSec < 60) return 'just now';
+            const diffMin = Math.floor(diffSec / 60);
+            if (diffMin < 60) return `${diffMin}m ago`;
+            const diffHr = Math.floor(diffMin / 60);
+            if (diffHr < 24) return `${diffHr}h ago`;
+            const diffDay = Math.floor(diffHr / 24);
+            if (diffDay < 7) return `${diffDay}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        // ==========================================
+        // Engine Status
+        // ==========================================
+        async function loadEngineStatus() {
+            try {
+                const res = await fetch('/api/automation/engine/status');
+                const data = await res.json();
+                const el = document.getElementById('engineStatus');
+                if (data.running) {
+                    el.className = 'text-xs px-2 py-1 rounded-full bg-green-100 text-green-700';
+                    el.textContent = `Engine: Running (${data.workflow_count} workflows)`;
+                } else {
+                    el.className = 'text-xs px-2 py-1 rounded-full bg-red-100 text-red-700';
+                    el.textContent = 'Engine: Stopped';
+                }
+            } catch (e) {}
+        }
+
+        // ==========================================
+        // Utilities
+        // ==========================================
+        function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+        function showToast(message, type = 'info') {
+            const colors = { success: '#A8DF8E', error: '#ef4444', info: '#3b82f6' };
+            const toast = document.createElement('div');
+            toast.style.cssText = `position:fixed;bottom:24px;right:24px;padding:12px 20px;background:white;border-left:4px solid ${colors[type] || colors.info};border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:9999;font-size:14px;animation:slideIn 0.3s ease`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        // ==========================================
+        // WebSocket for real-time updates
+        // ==========================================
+        function setupWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+            ws.onmessage = (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'automation_execution') {
+                        const ipLabel = data.device_ip === 'all devices' ? 'All Devices' : data.device_ip;
+                        showToast(`${data.workflow_name}: ${data.status} (${ipLabel})`,
+                            data.status === 'success' ? 'success' : data.status === 'failed' ? 'error' : 'info');
+                        // Refresh logs if on logs tab
+                        if (!document.getElementById('tab-logs').classList.contains('hidden')) {
+                            loadLogs();
+                        }
+                    }
+                } catch (e) {}
+            };
+            ws.onclose = () => setTimeout(setupWebSocket, 5000);
+        }
+
+        // ==========================================
+        // Init
+        // ==========================================
+        async function init() {
+            try {
+                const res = await fetch('/api/auth/check');
+                const data = await res.json();
+                if (!data.authenticated) { window.location.href = '/login'; return; }
+                currentUser = data.user;
+
+                document.getElementById('userName').textContent = currentUser.username;
+                document.getElementById('userRole').textContent = currentUser.role === 'admin' ? 'Administrator' : 'User';
+                document.getElementById('userInitial').textContent = currentUser.username.charAt(0).toUpperCase();
+
+                await Promise.all([loadWorkflows(), loadDevices(), loadPlants(), loadEngineStatus()]);
+
+                // Populate log filter dropdown
+                const sel = document.getElementById('logFilterWorkflow');
+                workflows.forEach(wf => {
+                    const opt = document.createElement('option');
+                    opt.value = wf.id;
+                    opt.textContent = wf.name;
+                    sel.appendChild(opt);
+                });
+
+                setupWebSocket();
+                // Refresh engine status periodically
+                setInterval(loadEngineStatus, 30000);
+            } catch (e) {
+                window.location.href = '/login';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

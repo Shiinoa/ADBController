@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Devices - ADB Control Center</title>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
+        <div class="flex items-center gap-3 mb-8 p-2">
+            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-bold">ADB Control</h1>
+                <p class="text-xs text-gray-500">TV Management</p>
+            </div>
+        </div>
+
+        <nav class="space-y-2">
+            <a href="/dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+                Dashboard
+            </a>
+            <a href="/control" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+                Control Panel
+            </a>
+            <a href="/multiview" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                </svg>
+                Multi-View
+            </a>
+            <a href="/devices" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                TV Devices
+            </a>
+            <a href="/reports" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Daily Reports
+            </a>
+            <a href="/documents" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                Documents
+            </a>
+            <a href="/report-form" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Report Form
+            </a>
+            <a href="/automate" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Automate
+            </a>
+            <a href="/settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Settings
+            </a>
+            <a href="/scrcpy-agent" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Scrcpy Agent
+            </a>
+        </nav>
+
+        <!-- User Info -->
+        <div class="absolute bottom-4 left-4 right-4">
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-100">
+                <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold" id="userInitial">A</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium" id="userName">Admin</p>
+                    <p class="text-xs text-gray-500" id="userRole">Administrator</p>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-gray-900">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-64 p-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold">TV Devices</h2>
+                <p class="text-gray-500">Manage your TV device inventory</p>
+            </div>
+            <div class="flex items-center gap-3" id="deviceAdminActions">
+                <button onclick="exportDevices()" class="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center gap-2 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Export CSV
+                </button>
+                <button onclick="importDevices()" class="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center gap-2 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Import CSV
+                </button>
+                <button onclick="showAddModal()" class="btn-primary px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Device
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="card rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Total Devices</p>
+                        <p class="text-3xl font-bold" id="totalDevices">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="card rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Locations</p>
+                        <p class="text-3xl font-bold" id="totalLocations">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="card rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Projects</p>
+                        <p class="text-3xl font-bold" id="totalProjects">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="card rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Work Centers</p>
+                        <p class="text-3xl font-bold" id="totalWorkCenters">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="card rounded-xl p-4 mb-6">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="relative flex-1 min-w-[200px]">
+                    <input type="text" id="searchDevice" placeholder="Search by name, IP, location, plant..."
+                           class="input-field w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                           oninput="filterDevices()">
+                    <svg class="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <select id="filterLocation" onchange="filterDevices()" class="input-field px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none min-w-[180px]">
+                    <option value="">All Locations</option>
+                </select>
+                <select id="filterPlant" onchange="filterDevices()" class="input-field px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none min-w-[150px]">
+                    <option value="">All Plants</option>
+                </select>
+                <select id="filterProject" onchange="filterDevices()" class="input-field px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none min-w-[150px]">
+                    <option value="">All Projects</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Devices Table -->
+        <div class="card rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Device Name</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Asset Tag</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">IP Address</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">MAC Address</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Plant</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Location</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Project</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Work Center</th>
+                            <th class="px-4 py-3 text-center text-sm font-medium text-gray-500">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="devicesTable">
+                        <tr>
+                            <td colspan="9" class="px-4 py-12 text-center text-gray-500">
+                                <div class="loading-spinner mx-auto mb-2"></div>
+                                Loading devices...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between mt-4">
+            <p class="text-sm text-gray-500">
+                Showing <span id="showingFrom">0</span>-<span id="showingTo">0</span> of <span id="showingTotal">0</span> devices
+            </p>
+            <div class="flex items-center gap-2">
+                <button onclick="prevPage()" id="prevBtn" disabled class="px-3 py-1.5 bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <span class="px-3 py-1.5 text-sm">Page <span id="currentPage">1</span> of <span id="totalPages">1</span></span>
+                <button onclick="nextPage()" id="nextBtn" disabled class="px-3 py-1.5 bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Device Modal -->
+    <div id="deviceModal" class="fixed inset-0 bg-black/30 modal-overlay hidden items-center justify-center z-50">
+        <div class="card rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold" id="modalTitle">Add New Device</h3>
+                <button onclick="hideModal()" class="text-gray-500 hover:text-gray-900">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="deviceForm" onsubmit="saveDevice(event)">
+                <input type="hidden" id="editIndex" value="-1">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Plant -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Plant *</label>
+                        <select id="plantId" required
+                                class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none">
+                            <option value="KCEE">KCEE</option>
+                        </select>
+                    </div>
+
+                    <!-- Asset Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Asset Name *</label>
+                        <input type="text" id="assetName" required
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., THE-TV001">
+                    </div>
+
+                    <!-- Asset Tag -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Asset Tag</label>
+                        <input type="text" id="assetTag"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., 1801002110">
+                    </div>
+
+                    <!-- IP Address -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">IP Address *</label>
+                        <input type="text" id="ipAddress" required
+                               pattern="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none font-mono"
+                               placeholder="e.g., 10.10.210.10">
+                    </div>
+
+                    <!-- MAC Address -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">MAC Address</label>
+                        <input type="text" id="macAddress"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none font-mono"
+                               placeholder="e.g., 64:e0:03:db:25:89">
+                    </div>
+
+                    <!-- Model -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Model</label>
+                        <input type="text" id="model"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., LED40S6500">
+                    </div>
+
+                    <!-- Manufacturer -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Manufacturer</label>
+                        <input type="text" id="manufacturer" value="TCL"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., TCL">
+                    </div>
+
+                    <!-- Serial -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Serial Number</label>
+                        <input type="text" id="serial"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., 2102ALU160689G00527">
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+                        <input type="text" id="category" value="TV Monitor"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., TV Monitor">
+                    </div>
+
+                    <!-- Location -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Default Location *</label>
+                        <input type="text" id="location" required list="locationList"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., F1-Control Press">
+                        <datalist id="locationList"></datalist>
+                    </div>
+
+                    <!-- Project -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Project</label>
+                        <input type="text" id="project" list="projectList"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., KPI">
+                        <datalist id="projectList"></datalist>
+                    </div>
+
+                    <!-- Work Center -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Work Center</label>
+                        <input type="text" id="workCenter"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., Lamination Outer : LAY,PRESS">
+                    </div>
+
+                    <!-- Monitor -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Monitor Group</label>
+                        <input type="text" id="monitor"
+                               class="input-field w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none"
+                               placeholder="e.g., MonitorF1">
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                    <button type="button" onclick="hideModal()" class="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveBtn" class="btn-primary px-6 py-2.5 rounded-lg font-medium">
+                        Save Device
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-black/30 modal-overlay hidden items-center justify-center z-50">
+        <div class="card rounded-2xl p-6 w-full max-w-md">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Delete Device</h3>
+                <p class="text-gray-500 mb-6">Are you sure you want to delete <span id="deleteDeviceName" class="font-semibold text-white"></span>? This action cannot be undone.</p>
+                <div class="flex items-center justify-center gap-3">
+                    <button onclick="hideDeleteModal()" class="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="confirmDelete()" class="btn-danger px-6 py-2.5 rounded-lg font-medium">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import CSV Modal -->
+    <div id="importModal" class="fixed inset-0 bg-black/30 modal-overlay hidden items-center justify-center z-50">
+        <div class="card rounded-2xl p-6 w-full max-w-lg">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold">Import Devices from CSV</h3>
+                <button onclick="hideImportModal()" class="text-gray-500 hover:text-gray-900">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
+                <svg class="w-12 h-12 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <p class="text-gray-600 mb-2">Drop your CSV file here or</p>
+                <button onclick="document.getElementById('csvFile').click()" class="btn-primary px-4 py-2 rounded-lg">
+                    Browse Files
+                </button>
+                <p class="text-xs text-gray-500 mt-3">CSV should have headers: Plant ID, Asset Name, Asset Tag, IP, MAC Address, etc. If Plant ID is missing, the default plant will be used.</p>
+            </div>
+
+            <div id="importPreview" class="hidden mt-4">
+                <p class="text-sm text-gray-500 mb-2">Found <span id="importCount">0</span> devices to import</p>
+                <div class="flex items-center justify-end gap-3">
+                    <button onclick="hideImportModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Cancel</button>
+                    <button onclick="confirmImport()" class="btn-success px-4 py-2 rounded-lg">Import All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <script>
+        let allDevices = [];
+        let filteredDevices = [];
+        let currentPage = 1;
+        const pageSize = 20;
+        let deleteIndex = -1;
+        let importData = [];
+        let allPlants = [];
+        let currentUser = null;
+        const defaultPlantId = 'KCEE';
+
+        function getDevicePlant(device) {
+            return device['Plant ID'] || device['plant_id'] || defaultPlantId;
+        }
+
+        function populatePlantOptions() {
+            const visiblePlantCodes = [...new Set(allDevices.map(getDevicePlant).filter(Boolean))].sort();
+            const plantOptions = allPlants.length > 0
+                ? allPlants
+                : visiblePlantCodes.map(code => ({ code, name: code }));
+
+            const filterSelect = document.getElementById('filterPlant');
+            const formSelect = document.getElementById('plantId');
+            const currentFilterValue = filterSelect.value;
+            const currentFormValue = formSelect.value;
+
+            filterSelect.innerHTML = '<option value="">All Plants</option>' +
+                plantOptions.map(plant => `<option value="${plant.code}">${plant.code}</option>`).join('');
+
+            formSelect.innerHTML = plantOptions.map(plant =>
+                `<option value="${plant.code}">${plant.code}${plant.name ? ` - ${plant.name}` : ''}</option>`
+            ).join('');
+
+            filterSelect.value = plantOptions.some(plant => plant.code === currentFilterValue) ? currentFilterValue : '';
+            formSelect.value = plantOptions.some(plant => plant.code === currentFormValue)
+                ? currentFormValue
+                : (currentUser?.plant_code || plantOptions[0]?.code || defaultPlantId);
+
+            formSelect.disabled = currentUser?.role !== 'admin';
+        }
+
+        async function loadPlants() {
+            if (!currentUser) {
+                allPlants = [];
+                populatePlantOptions();
+                return;
+            }
+
+            if (currentUser.role !== 'admin') {
+                allPlants = [{ code: currentUser.plant_code || defaultPlantId, name: currentUser.plant_code || defaultPlantId }];
+                populatePlantOptions();
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/plants');
+                const data = await response.json();
+                allPlants = data.plants || [];
+            } catch (e) {
+                console.error('Load plants error:', e);
+                allPlants = [];
+            }
+
+            populatePlantOptions();
+        }
+
+        // Load devices on page load
+        async function loadDevices() {
+            try {
+                const response = await fetch('/api/devices');
+                const data = await response.json();
+                allDevices = data.devices || [];
+                filteredDevices = [...allDevices];
+                updateStats();
+                populateFilters();
+                renderDevices();
+            } catch (e) {
+                console.error('Load devices error:', e);
+                showToast('Failed to load devices', 'error');
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalDevices').textContent = allDevices.length;
+
+            const locations = new Set(allDevices.map(d => d['Default Location']).filter(Boolean));
+            document.getElementById('totalLocations').textContent = locations.size;
+
+            const projects = new Set(allDevices.map(d => d['Project']).filter(Boolean));
+            document.getElementById('totalProjects').textContent = projects.size;
+
+            const workCenters = new Set(allDevices.map(d => d['Work Center']).filter(Boolean));
+            document.getElementById('totalWorkCenters').textContent = workCenters.size;
+        }
+
+        function populateFilters() {
+            const locations = [...new Set(allDevices.map(d => d['Default Location']).filter(Boolean))].sort();
+            const projects = [...new Set(allDevices.map(d => d['Project']).filter(Boolean))].sort();
+
+            const locationSelect = document.getElementById('filterLocation');
+            locationSelect.innerHTML = '<option value="">All Locations</option>' +
+                locations.map(l => `<option value="${l}">${l}</option>`).join('');
+
+            const projectSelect = document.getElementById('filterProject');
+            projectSelect.innerHTML = '<option value="">All Projects</option>' +
+                projects.map(p => `<option value="${p}">${p}</option>`).join('');
+
+            // Also populate datalists for form
+            document.getElementById('locationList').innerHTML = locations.map(l => `<option value="${l}">`).join('');
+            document.getElementById('projectList').innerHTML = projects.map(p => `<option value="${p}">`).join('');
+            populatePlantOptions();
+        }
+
+        function filterDevices() {
+            const search = document.getElementById('searchDevice').value.toLowerCase();
+            const location = document.getElementById('filterLocation').value;
+            const plant = document.getElementById('filterPlant').value;
+            const project = document.getElementById('filterProject').value;
+
+            filteredDevices = allDevices.filter(d => {
+                const matchSearch = !search ||
+                    (d['Asset Name'] || '').toLowerCase().includes(search) ||
+                    (d['IP'] || '').toLowerCase().includes(search) ||
+                    getDevicePlant(d).toLowerCase().includes(search) ||
+                    (d['Default Location'] || '').toLowerCase().includes(search) ||
+                    (d['Work Center'] || '').toLowerCase().includes(search) ||
+                    (d['MAC Address'] || '').toLowerCase().includes(search);
+
+                const matchLocation = !location || d['Default Location'] === location;
+                const matchPlant = !plant || getDevicePlant(d) === plant;
+                const matchProject = !project || d['Project'] === project;
+
+                return matchSearch && matchLocation && matchPlant && matchProject;
+            });
+
+            currentPage = 1;
+            renderDevices();
+        }
+
+        function renderDevices() {
+            const tbody = document.getElementById('devicesTable');
+            const totalDevices = filteredDevices.length;
+            const totalPages = Math.ceil(totalDevices / pageSize) || 1;
+            const start = (currentPage - 1) * pageSize;
+            const end = Math.min(start + pageSize, totalDevices);
+            const pageDevices = filteredDevices.slice(start, end);
+
+            if (pageDevices.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-4 py-12 text-center text-gray-500">
+                            <svg class="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            No devices found
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = pageDevices.map((d, idx) => {
+                    const realIndex = allDevices.indexOf(d);
+                    return `
+                        <tr class="table-row border-b border-gray-200">
+                            <td class="px-4 py-3">
+                                <div class="font-medium">${d['Asset Name'] || '-'}</div>
+                                <div class="text-xs text-gray-500">${d['Model'] || ''}</div>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">${d['Asset Tag'] || '-'}</td>
+                            <td class="px-4 py-3 font-mono text-sm">${d['IP'] || '-'}</td>
+                            <td class="px-4 py-3 font-mono text-xs text-gray-500">${d['MAC Address'] || '-'}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 whitespace-nowrap">${getDevicePlant(d)}</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm">${d['Default Location'] || '-'}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 text-xs rounded-full ${d['Project'] === 'KPI' ? 'bg-green-100 text-green-600' : d['Project'] === 'PARAMETER' ? 'bg-green-500/20 text-green-400' : 'bg-gray-100 text-gray-500'}">${d['Project'] || '-'}</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500 max-w-[200px] truncate" title="${d['Work Center'] || ''}">${d['Work Center'] || '-'}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-center gap-2">
+                                    ${currentUser?.role === 'admin' ? `
+                                        <button onclick="editDevice(${realIndex})" class="p-1.5 text-green-600 hover:text-green-500 hover:bg-green-100 rounded transition-colors" title="Edit">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                            </svg>
+                                        </button>
+                                    ` : ''}
+                                    <button onclick="viewRemote('${d['IP']}')" class="p-1.5 text-green-400 hover:text-green-300 hover:bg-green-500/10 rounded transition-colors" title="Remote View" ${!d['IP'] ? 'disabled style="opacity:0.3;cursor:not-allowed"' : ''}>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </button>
+                                    ${currentUser?.role === 'admin' ? `
+                                        <button onclick="showDeleteModal(${realIndex})" class="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors" title="Delete">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Update pagination
+            document.getElementById('showingFrom').textContent = totalDevices > 0 ? start + 1 : 0;
+            document.getElementById('showingTo').textContent = end;
+            document.getElementById('showingTotal').textContent = totalDevices;
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderDevices();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredDevices.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderDevices();
+            }
+        }
+
+        // Modal functions
+        function showAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Device';
+            document.getElementById('editIndex').value = -1;
+            document.getElementById('deviceForm').reset();
+            document.getElementById('manufacturer').value = 'TCL';
+            document.getElementById('category').value = 'TV Monitor';
+            populatePlantOptions();
+            document.getElementById('plantId').value = currentUser?.plant_code || defaultPlantId;
+            showModal();
+        }
+
+        function editDevice(index) {
+            const device = allDevices[index];
+            document.getElementById('modalTitle').textContent = 'Edit Device';
+            document.getElementById('editIndex').value = index;
+            document.getElementById('assetName').value = device['Asset Name'] || '';
+            document.getElementById('assetTag').value = device['Asset Tag'] || '';
+            document.getElementById('ipAddress').value = device['IP'] || '';
+            document.getElementById('macAddress').value = device['MAC Address'] || '';
+            document.getElementById('model').value = device['Model'] || '';
+            document.getElementById('manufacturer').value = device['Manufacturer'] || 'TCL';
+            document.getElementById('serial').value = device['Serial'] || '';
+            document.getElementById('category').value = device['Category'] || 'TV Monitor';
+            populatePlantOptions();
+            document.getElementById('plantId').value = getDevicePlant(device);
+            document.getElementById('location').value = device['Default Location'] || '';
+            document.getElementById('project').value = device['Project'] || '';
+            document.getElementById('workCenter').value = device['Work Center'] || '';
+            document.getElementById('monitor').value = device['Monotor'] || '';
+            showModal();
+        }
+
+        function showModal() {
+            document.getElementById('deviceModal').classList.remove('hidden');
+            document.getElementById('deviceModal').classList.add('flex');
+        }
+
+        function hideModal() {
+            document.getElementById('deviceModal').classList.add('hidden');
+            document.getElementById('deviceModal').classList.remove('flex');
+        }
+
+        async function saveDevice(event) {
+            event.preventDefault();
+
+            const index = parseInt(document.getElementById('editIndex').value);
+            const device = {
+                'Plant ID': document.getElementById('plantId').value,
+                'Asset Name': document.getElementById('assetName').value,
+                'Asset Tag': document.getElementById('assetTag').value,
+                'IP': document.getElementById('ipAddress').value,
+                'MAC Address': document.getElementById('macAddress').value,
+                'Model': document.getElementById('model').value,
+                'Manufacturer': document.getElementById('manufacturer').value,
+                'Serial': document.getElementById('serial').value,
+                'Category': document.getElementById('category').value,
+                'Default Location': document.getElementById('location').value,
+                'Project': document.getElementById('project').value,
+                'Work Center': document.getElementById('workCenter').value,
+                'Monotor': document.getElementById('monitor').value
+            };
+
+            try {
+                const url = index >= 0 ? `/api/devices/${index}` : '/api/devices/add';
+                const method = index >= 0 ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(device)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(index >= 0 ? 'Device updated successfully' : 'Device added successfully', 'success');
+                    hideModal();
+                    loadDevices();
+                } else {
+                    showToast(data.message || 'Failed to save device', 'error');
+                }
+            } catch (e) {
+                console.error('Save device error:', e);
+                showToast('Failed to save device', 'error');
+            }
+        }
+
+        function showDeleteModal(index) {
+            deleteIndex = index;
+            document.getElementById('deleteDeviceName').textContent = allDevices[index]['Asset Name'] || 'this device';
+            document.getElementById('deleteModal').classList.remove('hidden');
+            document.getElementById('deleteModal').classList.add('flex');
+        }
+
+        function hideDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            document.getElementById('deleteModal').classList.remove('flex');
+            deleteIndex = -1;
+        }
+
+        async function confirmDelete() {
+            if (deleteIndex < 0) return;
+
+            try {
+                const response = await fetch(`/api/devices/${deleteIndex}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Device deleted successfully', 'success');
+                    hideDeleteModal();
+                    loadDevices();
+                } else {
+                    showToast(data.message || 'Failed to delete device', 'error');
+                }
+            } catch (e) {
+                console.error('Delete device error:', e);
+                showToast('Failed to delete device', 'error');
+            }
+        }
+
+        function viewRemote(ip) {
+            if (ip) {
+                window.open(`/remote/${ip}`, '_blank');
+            }
+        }
+
+        // Export
+        function exportDevices() {
+            const headers = ['Plant ID', 'Asset Name', 'Asset Tag', 'IP', 'MAC Address', 'Model', 'Category', 'Manufacturer', 'Serial', 'Default Location', 'Project', 'Work Center', 'Monotor'];
+            let csv = headers.join(',') + '\n';
+
+            allDevices.forEach(d => {
+                const row = headers.map(h => {
+                    const value = h === 'Plant ID' ? getDevicePlant(d) : (d[h] || '');
+                    return `"${String(value).replace(/"/g, '""')}"`;
+                });
+                csv += row.join(',') + '\n';
+            });
+
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `devices_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            showToast('Devices exported successfully', 'success');
+        }
+
+        // Import
+        function importDevices() {
+            document.getElementById('importModal').classList.remove('hidden');
+            document.getElementById('importModal').classList.add('flex');
+            document.getElementById('importPreview').classList.add('hidden');
+        }
+
+        function hideImportModal() {
+            document.getElementById('importModal').classList.add('hidden');
+            document.getElementById('importModal').classList.remove('flex');
+            document.getElementById('csvFile').value = '';
+            importData = [];
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n').filter(l => l.trim());
+                if (lines.length < 2) {
+                    showToast('CSV file is empty or invalid', 'error');
+                    return;
+                }
+
+                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                importData = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].match(/(".*?"|[^",]+)/g) || [];
+                    const device = {};
+                    headers.forEach((h, idx) => {
+                        device[h] = (values[idx] || '').replace(/^"|"$/g, '').trim();
+                    });
+                    if (device['Asset Name'] || device['IP']) {
+                        importData.push(device);
+                    }
+                }
+
+                document.getElementById('importCount').textContent = importData.length;
+                document.getElementById('importPreview').classList.remove('hidden');
+            };
+            reader.readAsText(file);
+        }
+
+        async function confirmImport() {
+            if (importData.length === 0) return;
+
+            try {
+                const response = await fetch('/api/devices/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ devices: importData })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Imported ${data.count} devices successfully`, 'success');
+                    hideImportModal();
+                    loadDevices();
+                } else {
+                    showToast(data.message || 'Failed to import devices', 'error');
+                }
+            } catch (e) {
+                console.error('Import error:', e);
+                showToast('Failed to import devices', 'error');
+            }
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast px-4 py-3 rounded-lg flex items-center gap-3 ${
+                type === 'success' ? 'bg-green-600' :
+                type === 'error' ? 'bg-red-600' : 'bg-gray-200'
+            }`;
+
+            toast.innerHTML = `
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${type === 'success' ?
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>' :
+                    type === 'error' ?
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>' :
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'}
+                </svg>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // User functions
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    document.getElementById('userName').textContent = data.user.username;
+                    document.getElementById('userRole').textContent = data.user.role === 'admin' ? 'Administrator' : 'User';
+                    document.getElementById('userInitial').textContent = data.user.username[0].toUpperCase();
+                    await loadPlants();
+                    document.getElementById('deviceAdminActions').classList.toggle('hidden', data.user.role !== 'admin');
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (e) {
+                window.location.href = '/login';
+            }
+        }
+
+        // Close modals on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideModal();
+                hideDeleteModal();
+                hideImportModal();
+            }
+        });
+
+        // Initialize
+        loadUserInfo().finally(() => loadDevices());
+    </script>
+</body>
+</html>

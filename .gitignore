@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Node
+node_modules/
+
+# OS / editor
+Thumbs.db
+.DS_Store
+
+# Local databases and journals
+*.db
+*.db-journal
+
+# Local app state / secrets
+webapp/.admin_credentials
+webapp/.db_path
+
+# Generated app data
+webapp/.compilecheck/
+webapp/db_backups/
+webapp/reports/
+webapp/screenshots/
+webapp/documents/
+webapp/*.backup
+
+# Client agent build outputs
+client_agent/build/
+client_agent/dist/
+
+# Third-party local binaries
+scrcpy/
+
+# Unrelated local folders / probes
+2026/
+Application/
+Camera/
+db_root_probe.db
+db_root_probe.db-journal
+nul
+package-lock.json
+ขั้นตอนการ Set TV Monitor.docx
+ขั้นตอนการ Set TV Monitor.pdf

@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - ADB Control Center</title>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .tab-btn.active {
+            background: #A8DF8E;
+        }
+        /* Email tag input */
+        .email-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 6px 8px;
+            min-height: 42px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            cursor: text;
+            align-items: center;
+        }
+        .email-tags-container:focus-within {
+            outline: none;
+            box-shadow: 0 0 0 2px #A8DF8E;
+        }
+        .email-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: #dcfce7;
+            color: #166534;
+            border-radius: 9999px;
+            font-size: 13px;
+            line-height: 1.5;
+            max-width: 100%;
+        }
+        .email-tag.invalid {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .email-tag button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border: none;
+            background: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 0;
+            font-size: 14px;
+            opacity: 0.6;
+        }
+        .email-tag button:hover {
+            opacity: 1;
+        }
+        .email-tags-input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 14px;
+            flex: 1;
+            min-width: 180px;
+            padding: 4px 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex">
+    <!-- Sidebar (same as dashboard) -->
+    <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
+        <div class="flex items-center gap-3 mb-8 p-2">
+            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-bold">ADB Control</h1>
+                <p class="text-xs text-gray-500">TV Management</p>
+            </div>
+        </div>
+
+        <nav class="space-y-2">
+            <a href="/dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+                Dashboard
+            </a>
+            <a href="/control" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+                Control Panel
+            </a>
+            <a href="/multiview" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                </svg>
+                Multi-View
+            </a>
+            <a href="/devices" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                TV Devices
+            </a>
+            <a href="/reports" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Daily Reports
+            </a>
+            <a href="/documents" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                Documents
+            </a>
+            <a href="/report-form" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Report Form
+            </a>
+            <a href="/automate" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Automate
+            </a>
+            <a href="/settings" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Settings
+            </a>
+            <a href="/scrcpy-agent" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Scrcpy Agent
+            </a>
+        </nav>
+
+        <!-- User Info -->
+        <div class="absolute bottom-4 left-4 right-4">
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-100">
+                <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold" id="userInitial">A</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium" id="userName">Admin</p>
+                    <p class="text-xs text-gray-500" id="userRole">Administrator</p>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-gray-900">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-64 p-6">
+        <h2 class="text-2xl font-bold mb-6">Settings</h2>
+
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-6" id="tabBar">
+            <button onclick="showTab('profile')" class="tab-btn active px-4 py-2 rounded-lg" data-tab="profile">My Profile</button>
+            <button onclick="showTab('users')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="users">User Management</button>
+            <button onclick="showTab('plants')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="plants">Plants</button>
+            <button onclick="showTab('smtp')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="smtp">SMTP Server</button>
+            <button onclick="showTab('interchat')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="interchat">Interchat</button>
+            <button onclick="showTab('alerts')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="alerts">Alert Settings</button>
+            <button onclick="showTab('ntp')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="ntp">NTP Sync</button>
+        </div>
+
+        <!-- My Profile Tab -->
+        <div id="tab-profile" class="tab-content">
+            <div class="card rounded-xl p-6 max-w-xl">
+                <h3 class="text-lg font-semibold mb-4">My Profile</h3>
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+                            <span class="text-lg font-bold text-white" id="profileInitial">A</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-lg" id="profileUsername">-</p>
+                            <p class="text-sm text-gray-500" id="profileRole">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="font-medium mb-3">Change Password</h4>
+                <form id="changePasswordForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Current Password</label>
+                        <input type="password" id="currentPassword" required class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">New Password</label>
+                        <input type="password" id="newPassword" required minlength="4" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Confirm New Password</label>
+                        <input type="password" id="confirmPassword" required minlength="4" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div id="passwordMsg" class="text-sm hidden"></div>
+                    <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Change Password</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- User Management Tab (admin only) -->
+        <div id="tab-users" class="tab-content hidden admin-only">
+            <div class="card rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Users</h3>
+                    <button onclick="showAddUser()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Add User</button>
+                </div>
+
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Username</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Role</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Plant</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Created</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Last Login</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Plant Management Tab (admin only) -->
+        <div id="tab-plants" class="tab-content hidden admin-only">
+            <div class="card rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold">Plant Management</h3>
+                        <p class="text-sm text-gray-500">Create plants, then assign users and TV devices to the correct plant.</p>
+                    </div>
+                    <button onclick="showAddPlant()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Add Plant</button>
+                </div>
+
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Code</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Name</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Location</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Timezone</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="plantsTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SMTP Tab (admin only) -->
+        <div id="tab-smtp" class="tab-content hidden admin-only">
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">SMTP Server Configuration</h3>
+                <form id="smtpForm" class="space-y-4 max-w-xl">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-500 mb-1">SMTP Host</label>
+                            <input type="text" id="smtp_host" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="smtp.gmail.com">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-500 mb-1">SMTP Port</label>
+                            <input type="number" id="smtp_port" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="587">
+                        </div>
+                    </div>
+
+                    <!-- Security Mode -->
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-2">Security Mode</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="smtp_security" value="none" id="smtp_security_none" class="text-indigo-500 bg-gray-200 border-gray-600">
+                                <span class="text-sm">None</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="smtp_security" value="ssl" id="smtp_security_ssl" class="text-indigo-500 bg-gray-200 border-gray-600">
+                                <span class="text-sm">SSL/TLS</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="smtp_security" value="starttls" id="smtp_security_starttls" class="text-indigo-500 bg-gray-200 border-gray-600" checked>
+                                <span class="text-sm">STARTTLS</span>
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">SSL/TLS: Port 465 | STARTTLS: Port 587 | None: Port 25</p>
+                    </div>
+
+                    <!-- Enable Authentication -->
+                    <div class="p-3 bg-gray-100 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label class="block text-sm font-medium">Authentication</label>
+                                <p class="text-xs text-gray-500">Enable if your SMTP server requires login</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="smtp_auth_enabled" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Auth Credentials (shown when auth enabled) -->
+                    <div id="smtpAuthFields">
+                        <div>
+                            <label class="block text-sm text-gray-500 mb-1">Username / Email</label>
+                            <input type="text" id="smtp_user" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="your@email.com">
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm text-gray-500 mb-1">Password / App Password</label>
+                            <input type="password" id="smtp_password" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="••••••••">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">From Email</label>
+                        <input type="email" id="smtp_from" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="noreply@company.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">To Emails</label>
+                        <input type="hidden" id="smtp_to">
+                        <div class="email-tags-container" id="emailTagsContainer" onclick="document.getElementById('emailTagsInput').focus()">
+                            <input type="text" id="emailTagsInput" class="email-tags-input" placeholder="Type email and press Enter">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Press Enter, Tab, or comma to add</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Save</button>
+                        <button type="button" onclick="testSMTP()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Send Test Email</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Interchat Tab (admin only) -->
+        <div id="tab-interchat" class="tab-content hidden admin-only">
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">Interchat Integration</h3>
+                <form id="interchatForm" class="space-y-4 max-w-xl">
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Webhook URL</label>
+                        <input type="url" id="interchat_url" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="https://interchat.example.com/webhook/...">
+                        <p class="text-xs text-gray-500 mt-1">Paste the Interchat webhook endpoint here</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Token (optional)</label>
+                        <input type="text" id="interchat_token" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="token if required">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Username</label>
+                        <input type="text" id="interchat_username" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="ADB Control Center">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Icon URL (optional)</label>
+                        <input type="url" id="interchat_icon_url" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="https://example.com/bot-icon.png">
+                    </div>
+                    <div class="p-3 bg-gray-100 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label class="block text-sm font-medium">Skip SSL Verification</label>
+                                <p class="text-xs text-gray-500">Use only for internal or self-signed certificates</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="interchat_skip_ssl_verification" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Save</button>
+                        <button type="button" onclick="testInterchat()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Send Test Message</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Alert Settings Tab (admin only) -->
+        <div id="tab-alerts" class="tab-content hidden admin-only">
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">Alert Configuration</h3>
+                <form id="alertForm" class="space-y-4 max-w-xl">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" id="alert_enabled" class="rounded bg-gray-200 text-indigo-500">
+                        <label class="text-sm">Enable offline device alerts</label>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Ping Interval (seconds)</label>
+                        <input type="number" id="ping_interval" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="60" min="30" max="3600">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Daily Report Time</label>
+                        <input type="time" id="report_time" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" value="08:00">
+                    </div>
+                    <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Save</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- NTP Sync Tab (admin only) -->
+        <div id="tab-ntp" class="tab-content hidden admin-only">
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">NTP Server Sync</h3>
+                <form id="ntpForm" class="space-y-4 max-w-2xl">
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">NTP Server</label>
+                        <input type="text" id="ntp_server" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="time.google.com or 192.168.1.10">
+                        <p class="text-xs text-gray-500 mt-1">Webapp จะใช้เวลา NTP นี้เป็นแหล่งอ้างอิงสำหรับ scheduler ของ automation โดยไม่ไป sync เวลาใน TV</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-3 bg-gray-100 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <label class="block text-sm font-medium">Enable NTP Sync</label>
+                                    <p class="text-xs text-gray-500">เปิดให้ webapp คอยดึงเวลา NTP มาใช้ปรับ offset ภายในระบบ</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="ntp_sync_enabled" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-500 mb-1">Sync Interval (seconds)</label>
+                            <input type="number" id="ntp_sync_interval" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" min="60" max="86400" placeholder="900">
+                            <p class="text-xs text-gray-500 mt-1">ค่าที่แนะนำ 300-900 วินาที</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Save</button>
+                        <button type="button" onclick="syncNtpNow()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Sync Webapp Time Now</button>
+                        <button type="button" onclick="refreshNtpStatus()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Refresh Status</button>
+                    </div>
+
+                    <div id="ntpSyncStatus" class="text-sm hidden"></div>
+
+                    <div class="rounded-lg bg-gray-100 p-4 space-y-2">
+                        <h4 class="font-medium">Current NTP Status</h4>
+                        <p class="text-sm text-gray-600">Status: <span id="ntpStatusValue">idle</span></p>
+                        <p class="text-sm text-gray-600">Current Webapp Time: <span id="ntpCurrentTime">-</span></p>
+                        <p class="text-sm text-gray-600">Offset: <span id="ntpOffsetValue">0 ms</span></p>
+                        <p class="text-sm text-gray-600">Last Sync: <span id="ntpLastSyncValue">-</span></p>
+                        <p class="text-sm text-red-500 hidden" id="ntpLastErrorValue"></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit User Modal -->
+    <div id="userModal" class="fixed inset-0 bg-black/30 flex items-center justify-center hidden z-50">
+        <div class="card rounded-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold mb-4" id="modalTitle">Add User</h3>
+            <form id="userForm" class="space-y-4">
+                <input type="hidden" id="userId">
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Username</label>
+                    <input type="text" id="modalUsername" required class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Password</label>
+                    <input type="password" id="modalPassword" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Leave empty to keep current">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Role</label>
+                    <select id="modalRole" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Plant</label>
+                    <select id="modalPlant" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="">Select plant</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Users can view TV devices for the selected plant only.</p>
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Plant Modal -->
+    <div id="plantModal" class="fixed inset-0 bg-black/30 flex items-center justify-center hidden z-50">
+        <div class="card rounded-xl p-6 w-full max-w-lg">
+            <h3 class="text-lg font-semibold mb-4" id="plantModalTitle">Add Plant</h3>
+            <form id="plantForm" class="space-y-4">
+                <input type="hidden" id="plantId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Code</label>
+                        <input type="text" id="plantCode" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="KCEE">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-1">Timezone</label>
+                        <input type="text" id="plantTimezone" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" value="Asia/Bangkok">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Name</label>
+                    <input type="text" id="plantName" required class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Location</label>
+                    <input type="text" id="plantLocation" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">Description</label>
+                    <textarea id="plantDescription" rows="3" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="plantActive" class="rounded bg-gray-200 text-indigo-500" checked>
+                    <label class="text-sm">Active</label>
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <button type="button" onclick="closePlantModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let plantsCache = [];
+        let usersCache = [];
+
+        // Tab switching
+        function showTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active');
+                el.classList.add('bg-gray-100');
+            });
+
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            const btn = document.querySelector(`[data-tab="${tab}"]`);
+            if (btn) {
+                btn.classList.add('active');
+                btn.classList.remove('bg-gray-100');
+            }
+        }
+
+        // Show/hide admin-only elements based on role
+        function applyRolePermissions(role) {
+            const isAdmin = role === 'admin';
+            document.querySelectorAll('.admin-only').forEach(el => {
+                if (isAdmin) {
+                    el.classList.remove('hidden');
+                }
+                // non-admin: leave hidden (default)
+            });
+
+            // Profile tab info
+            document.getElementById('profileUsername').textContent = currentUser.username;
+            document.getElementById('profileRole').textContent = isAdmin ? 'Administrator' : 'User';
+            document.getElementById('profileInitial').textContent = currentUser.username[0].toUpperCase();
+
+            // Admin: load admin-only data
+            if (isAdmin) {
+                loadSettings();
+                loadUsers();
+                loadPlants();
+                refreshNtpStatus();
+            }
+        }
+
+        // ==========================================
+        // Change Password (all users)
+        // ==========================================
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msgEl = document.getElementById('passwordMsg');
+            const newPw = document.getElementById('newPassword').value;
+            const confirmPw = document.getElementById('confirmPassword').value;
+
+            if (newPw !== confirmPw) {
+                msgEl.textContent = 'New passwords do not match';
+                msgEl.className = 'text-sm text-red-500';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/password', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        current_password: document.getElementById('currentPassword').value,
+                        new_password: newPw
+                    })
+                });
+                const data = await response.json();
+                msgEl.textContent = data.message;
+                msgEl.className = data.success ? 'text-sm text-green-600' : 'text-sm text-red-500';
+                msgEl.classList.remove('hidden');
+
+                if (data.success) {
+                    document.getElementById('changePasswordForm').reset();
+                }
+            } catch (e) {
+                msgEl.textContent = 'Error changing password';
+                msgEl.className = 'text-sm text-red-500';
+                msgEl.classList.remove('hidden');
+            }
+        });
+
+        // ==========================================
+        // Admin-only: Settings, Users, SMTP, etc.
+        // ==========================================
+
+        // Toggle SMTP auth fields visibility
+        function toggleAuthFields() {
+            const authEnabled = document.getElementById('smtp_auth_enabled').checked;
+            document.getElementById('smtpAuthFields').style.display = authEnabled ? 'block' : 'none';
+        }
+        document.getElementById('smtp_auth_enabled').addEventListener('change', toggleAuthFields);
+
+        // ==========================================
+        // Email Tag Input
+        // ==========================================
+        const emailTags = [];
+        const emailInput = document.getElementById('emailTagsInput');
+        const emailContainer = document.getElementById('emailTagsContainer');
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function addEmailTag(email) {
+            email = email.trim();
+            if (!email) return;
+            // Avoid duplicates
+            if (emailTags.includes(email)) return;
+            emailTags.push(email);
+            renderEmailTags();
+        }
+
+        function removeEmailTag(index) {
+            emailTags.splice(index, 1);
+            renderEmailTags();
+        }
+
+        function renderEmailTags() {
+            // Remove existing tags (keep only the input)
+            emailContainer.querySelectorAll('.email-tag').forEach(el => el.remove());
+            // Insert tags before the input
+            emailTags.forEach((email, i) => {
+                const tag = document.createElement('span');
+                tag.className = 'email-tag' + (isValidEmail(email) ? '' : ' invalid');
+                tag.innerHTML = `${email}<button type="button" onclick="removeEmailTag(${i})">&times;</button>`;
+                emailContainer.insertBefore(tag, emailInput);
+            });
+            // Sync hidden input
+            document.getElementById('smtp_to').value = emailTags.join(',');
+            // Update placeholder
+            emailInput.placeholder = emailTags.length ? '' : 'Type email and press Enter';
+        }
+
+        function processEmailInput() {
+            const raw = emailInput.value;
+            // Split by comma in case user pastes multiple
+            const parts = raw.split(',');
+            parts.forEach(p => addEmailTag(p.trim()));
+            emailInput.value = '';
+        }
+
+        emailInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === 'Tab' || e.key === ',') {
+                e.preventDefault();
+                processEmailInput();
+            }
+            // Backspace on empty input removes last tag
+            if (e.key === 'Backspace' && !emailInput.value && emailTags.length) {
+                removeEmailTag(emailTags.length - 1);
+            }
+        });
+
+        // Handle paste (e.g. paste a list of comma-separated emails)
+        emailInput.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            text.split(',').forEach(p => addEmailTag(p.trim()));
+        });
+
+        // Also add on blur (user clicks away)
+        emailInput.addEventListener('blur', () => {
+            if (emailInput.value.trim()) processEmailInput();
+        });
+
+        function setEmailTagsFromString(str) {
+            emailTags.length = 0;
+            if (str) {
+                str.split(',').forEach(e => {
+                    const trimmed = e.trim();
+                    if (trimmed) emailTags.push(trimmed);
+                });
+            }
+            renderEmailTags();
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+
+                document.getElementById('smtp_host').value = settings.smtp_host || '';
+                document.getElementById('smtp_port').value = settings.smtp_port || '587';
+                document.getElementById('smtp_user').value = settings.smtp_user || '';
+                document.getElementById('smtp_password').value = settings.smtp_password || '';
+                document.getElementById('smtp_from').value = settings.smtp_from || '';
+                setEmailTagsFromString(settings.smtp_to || '');
+
+                const authEnabled = settings.smtp_auth_enabled !== 'false';
+                document.getElementById('smtp_auth_enabled').checked = authEnabled;
+                toggleAuthFields();
+
+                const security = settings.smtp_security || 'starttls';
+                document.querySelector(`input[name="smtp_security"][value="${security}"]`).checked = true;
+
+                document.getElementById('interchat_url').value = settings.interchat_url || settings.syno_chat_url || '';
+                document.getElementById('interchat_token').value = settings.interchat_token || settings.syno_chat_token || '';
+                document.getElementById('interchat_username').value = settings.interchat_username || 'ADB Control Center';
+                document.getElementById('interchat_icon_url').value = settings.interchat_icon_url || '';
+                document.getElementById('interchat_skip_ssl_verification').checked = settings.interchat_skip_ssl_verification === 'true';
+                document.getElementById('alert_enabled').checked = settings.alert_enabled === 'true';
+                document.getElementById('ping_interval').value = settings.ping_interval || '60';
+                document.getElementById('report_time').value = settings.report_time || '08:00';
+                document.getElementById('ntp_server').value = settings.ntp_server || '';
+                document.getElementById('ntp_sync_enabled').checked = settings.ntp_sync_enabled !== 'false';
+                document.getElementById('ntp_sync_interval').value = settings.ntp_sync_interval || '900';
+            } catch (e) {
+                console.error('Load settings error:', e);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/users');
+                if (response.status === 403) return;
+                const data = await response.json();
+                usersCache = data.users || [];
+
+                const tbody = document.getElementById('usersTable');
+                tbody.innerHTML = usersCache.map(u => `
+                    <tr class="border-b border-gray-200">
+                        <td class="px-4 py-3">${u.username}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded ${u.role === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-500'}">
+                                ${u.role}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${u.plant_code || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${u.created_at || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${u.last_login || 'Never'}</td>
+                        <td class="px-4 py-3">
+                            <button onclick="editUser(${u.id})" class="text-indigo-400 hover:text-indigo-300 mr-2">Edit</button>
+                            ${u.username !== 'admin' ? `<button onclick="deleteUser(${u.id})" class="text-red-400 hover:text-red-300">Delete</button>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Load users error:', e);
+            }
+        }
+
+        async function loadPlants() {
+            try {
+                const response = await fetch('/api/plants');
+                if (response.status === 403) return;
+                const data = await response.json();
+                plantsCache = data.plants || [];
+                renderUserPlantOptions();
+
+                const tbody = document.getElementById('plantsTable');
+                tbody.innerHTML = plantsCache.map(plant => `
+                    <tr class="border-b border-gray-200">
+                        <td class="px-4 py-3 font-mono text-sm">${plant.code || '-'}</td>
+                        <td class="px-4 py-3">${plant.name || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${plant.location || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${plant.timezone || '-'}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs rounded ${plant.is_active ? 'bg-green-500/20 text-green-600' : 'bg-gray-500/20 text-gray-500'}">
+                                ${plant.is_active ? 'active' : 'inactive'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <button onclick="editPlant(${plant.id})" class="text-indigo-400 hover:text-indigo-300 mr-2">Edit</button>
+                            ${plant.code !== 'default' ? `<button onclick="deletePlant(${plant.id})" class="text-red-400 hover:text-red-300">Delete</button>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Load plants error:', e);
+            }
+        }
+
+        function renderUserPlantOptions(selectedPlant = '') {
+            const select = document.getElementById('modalPlant');
+            if (!select) return;
+
+            const options = ['<option value="">Select plant</option>']
+                .concat(plantsCache.map(plant => `<option value="${plant.code}">${plant.code} - ${plant.name}</option>`));
+            select.innerHTML = options.join('');
+
+            if (selectedPlant && plantsCache.some(plant => plant.code === selectedPlant)) {
+                select.value = selectedPlant;
+            } else {
+                select.value = '';
+            }
+            updateUserPlantFieldState();
+        }
+
+        function updateUserPlantFieldState() {
+            const role = document.getElementById('modalRole').value;
+            const plantSelect = document.getElementById('modalPlant');
+            const isAdmin = role === 'admin';
+            plantSelect.disabled = isAdmin;
+            if (isAdmin) {
+                plantSelect.value = '';
+            }
+        }
+
+        // Save SMTP settings
+        document.getElementById('smtpForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const securityMode = document.querySelector('input[name="smtp_security"]:checked').value;
+            const settings = {
+                smtp_host: document.getElementById('smtp_host').value,
+                smtp_port: document.getElementById('smtp_port').value,
+                smtp_security: securityMode,
+                smtp_auth_enabled: document.getElementById('smtp_auth_enabled').checked ? 'true' : 'false',
+                smtp_user: document.getElementById('smtp_user').value,
+                smtp_password: document.getElementById('smtp_password').value,
+                smtp_from: document.getElementById('smtp_from').value,
+                smtp_to: document.getElementById('smtp_to').value
+            };
+            await saveSettings(settings);
+        });
+
+        // Save Interchat settings
+        document.getElementById('interchatForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const settings = {
+                interchat_url: document.getElementById('interchat_url').value,
+                interchat_token: document.getElementById('interchat_token').value,
+                interchat_username: document.getElementById('interchat_username').value,
+                interchat_icon_url: document.getElementById('interchat_icon_url').value,
+                interchat_skip_ssl_verification: document.getElementById('interchat_skip_ssl_verification').checked ? 'true' : 'false'
+            };
+            await saveSettings(settings);
+        });
+
+        // Save Alert settings
+        document.getElementById('alertForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const settings = {
+                alert_enabled: document.getElementById('alert_enabled').checked ? 'true' : 'false',
+                ping_interval: document.getElementById('ping_interval').value,
+                report_time: document.getElementById('report_time').value
+            };
+            await saveSettings(settings);
+        });
+
+        document.getElementById('ntpForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const settings = {
+                ntp_server: document.getElementById('ntp_server').value,
+                ntp_sync_enabled: document.getElementById('ntp_sync_enabled').checked ? 'true' : 'false',
+                ntp_sync_interval: document.getElementById('ntp_sync_interval').value
+            };
+            await saveSettings(settings);
+            await refreshNtpStatus();
+        });
+
+        async function saveSettings(settings) {
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(settings)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to save settings');
+                }
+                alert(data.success ? 'Settings saved!' : 'Failed to save');
+            } catch (e) {
+                alert(e.message || 'Error saving settings');
+            }
+        }
+
+        async function testSMTP() {
+            try {
+                const response = await fetch('/api/settings/test-smtp', { method: 'POST' });
+                const data = await response.json();
+                alert(data.success ? 'SMTP connection successful!' : 'SMTP test failed: ' + data.message);
+            } catch (e) {
+                alert('Test failed');
+            }
+        }
+
+        async function testInterchat() {
+            try {
+                const response = await fetch('/api/settings/test-interchat', { method: 'POST' });
+                const data = await response.json();
+                alert(data.success ? 'Test message sent!' : 'Test failed: ' + data.message);
+            } catch (e) {
+                alert('Test failed');
+            }
+        }
+
+        async function syncNtpNow() {
+            const statusEl = document.getElementById('ntpSyncStatus');
+            const ntpServer = document.getElementById('ntp_server').value.trim();
+
+            if (!ntpServer) {
+                statusEl.textContent = 'Please enter an NTP server first';
+                statusEl.className = 'text-sm text-red-500';
+                statusEl.classList.remove('hidden');
+                return;
+            }
+
+            statusEl.textContent = 'Syncing webapp time with NTP server...';
+            statusEl.className = 'text-sm text-gray-600';
+            statusEl.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/settings/ntp/sync-now', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ ntp_server: ntpServer })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Sync failed');
+                }
+
+                statusEl.textContent = `NTP sync finished. Offset: ${data.offset_ms || 0} ms`;
+                statusEl.className = 'text-sm text-green-600';
+                statusEl.classList.remove('hidden');
+                await refreshNtpStatus();
+            } catch (e) {
+                statusEl.textContent = e.message || 'Failed to sync NTP settings';
+                statusEl.className = 'text-sm text-red-500';
+                statusEl.classList.remove('hidden');
+            }
+        }
+
+        async function refreshNtpStatus() {
+            try {
+                const response = await fetch('/api/settings/ntp/status');
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to load NTP status');
+                }
+
+                document.getElementById('ntpStatusValue').textContent = data.status || 'idle';
+                document.getElementById('ntpCurrentTime').textContent = data.current_time || '-';
+                document.getElementById('ntpOffsetValue').textContent = `${data.offset_ms || 0} ms`;
+                document.getElementById('ntpLastSyncValue').textContent = data.last_sync || '-';
+
+                const errorEl = document.getElementById('ntpLastErrorValue');
+                if (data.last_error) {
+                    errorEl.textContent = data.last_error;
+                    errorEl.classList.remove('hidden');
+                } else {
+                    errorEl.textContent = '';
+                    errorEl.classList.add('hidden');
+                }
+            } catch (e) {
+                console.error('Load NTP status error:', e);
+            }
+        }
+
+        function showAddPlant() {
+            document.getElementById('plantModalTitle').textContent = 'Add Plant';
+            document.getElementById('plantId').value = '';
+            document.getElementById('plantCode').value = '';
+            document.getElementById('plantName').value = '';
+            document.getElementById('plantLocation').value = '';
+            document.getElementById('plantTimezone').value = 'Asia/Bangkok';
+            document.getElementById('plantDescription').value = '';
+            document.getElementById('plantActive').checked = true;
+            document.getElementById('plantModal').classList.remove('hidden');
+        }
+
+        function editPlant(id) {
+            const plant = plantsCache.find(item => item.id === id);
+            if (!plant) return;
+
+            document.getElementById('plantModalTitle').textContent = 'Edit Plant';
+            document.getElementById('plantId').value = plant.id;
+            document.getElementById('plantCode').value = plant.code || '';
+            document.getElementById('plantName').value = plant.name || '';
+            document.getElementById('plantLocation').value = plant.location || '';
+            document.getElementById('plantTimezone').value = plant.timezone || 'Asia/Bangkok';
+            document.getElementById('plantDescription').value = plant.description || '';
+            document.getElementById('plantActive').checked = !!plant.is_active;
+            document.getElementById('plantModal').classList.remove('hidden');
+        }
+
+        function closePlantModal() {
+            document.getElementById('plantModal').classList.add('hidden');
+        }
+
+        document.getElementById('plantForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('plantId').value;
+            const data = {
+                code: document.getElementById('plantCode').value,
+                name: document.getElementById('plantName').value,
+                location: document.getElementById('plantLocation').value,
+                timezone: document.getElementById('plantTimezone').value,
+                description: document.getElementById('plantDescription').value,
+                is_active: document.getElementById('plantActive').checked
+            };
+
+            try {
+                const url = id ? `/api/plants/${id}` : '/api/plants';
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.detail || result.message || 'Failed to save plant');
+                }
+
+                closePlantModal();
+                loadPlants();
+            } catch (e) {
+                alert(e.message || 'Error saving plant');
+            }
+        });
+
+        async function deletePlant(id) {
+            if (!confirm('Are you sure you want to delete this plant?')) return;
+            try {
+                const response = await fetch(`/api/plants/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || data.message || 'Failed to delete plant');
+                }
+
+                loadPlants();
+            } catch (e) {
+                alert(e.message || 'Error deleting plant');
+            }
+        }
+
+        // User modal functions
+        function showAddUser() {
+            document.getElementById('modalTitle').textContent = 'Add User';
+            document.getElementById('userId').value = '';
+            document.getElementById('modalUsername').value = '';
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalPassword').required = true;
+            document.getElementById('modalRole').value = 'user';
+            renderUserPlantOptions(plantsCache[0]?.code || '');
+            updateUserPlantFieldState();
+            document.getElementById('userModal').classList.remove('hidden');
+        }
+
+        function editUser(id) {
+            const user = usersCache.find(item => item.id === id);
+            if (!user) return;
+
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            document.getElementById('userId').value = id;
+            document.getElementById('modalUsername').value = user.username;
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalPassword').required = false;
+            document.getElementById('modalRole').value = user.role;
+            renderUserPlantOptions(user.plant_code || '');
+            updateUserPlantFieldState();
+            document.getElementById('userModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').classList.add('hidden');
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('userId').value;
+            const data = {
+                username: document.getElementById('modalUsername').value,
+                password: document.getElementById('modalPassword').value,
+                role: document.getElementById('modalRole').value,
+                plant_code: document.getElementById('modalRole').value === 'admin'
+                    ? null
+                    : (document.getElementById('modalPlant').value || null)
+            };
+
+            if (data.role !== 'admin' && !data.plant_code) {
+                alert('Please select a plant for this user');
+                return;
+            }
+
+            try {
+                const url = id ? `/api/users/${id}` : '/api/users';
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    closeModal();
+                    loadUsers();
+                } else {
+                    alert(result.message || 'Failed');
+                }
+            } catch (e) {
+                alert('Error saving user');
+            }
+        });
+
+        document.getElementById('modalRole').addEventListener('change', updateUserPlantFieldState);
+
+        async function deleteUser(id) {
+            if (!confirm('Are you sure you want to delete this user?')) return;
+            try {
+                const response = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    loadUsers();
+                } else {
+                    alert(data.message || 'Failed');
+                }
+            } catch (e) {
+                alert('Error deleting user');
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        // ==========================================
+        // Initialize — check role first, then load
+        // ==========================================
+        async function init() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+                if (!data.authenticated) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                currentUser = data.user;
+
+                // Sidebar user info
+                document.getElementById('userName').textContent = currentUser.username;
+                document.getElementById('userRole').textContent = currentUser.role === 'admin' ? 'Administrator' : 'User';
+                document.getElementById('userInitial').textContent = currentUser.username[0].toUpperCase();
+
+                // Apply role-based UI
+                applyRolePermissions(currentUser.role);
+
+                // Default to profile tab
+                showTab('profile');
+            } catch (e) {
+                window.location.href = '/login';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

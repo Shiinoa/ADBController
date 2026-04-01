@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Reports - ADB Control Center</title>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .status-badge.online {
+            background: rgba(120, 191, 94, 0.2);
+            color: #78BF5E;
+        }
+        .status-badge.offline {
+            background: rgba(246, 48, 73, 0.2);
+            color: #F63049;
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        .pulse-dot.online { background: #78BF5E; }
+        .pulse-dot.offline { background: #F63049; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
+        .donut-chart {
+            position: relative;
+            width: 160px;
+            height: 160px;
+        }
+        .donut-segment {
+            transition: all 0.3s ease;
+        }
+        .donut-segment:hover {
+            filter: brightness(1.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
+        <div class="flex items-center gap-3 mb-8 p-2">
+            <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-bold">ADB Control</h1>
+                <p class="text-xs text-gray-500">TV Management</p>
+            </div>
+        </div>
+
+        <nav class="space-y-2">
+            <a href="/dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+                Dashboard
+            </a>
+            <a href="/control" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                </svg>
+                Control Panel
+            </a>
+            <a href="/multiview" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                </svg>
+                Multi-View
+            </a>
+            <a href="/devices" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                TV Devices
+            </a>
+            <a href="/reports" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Daily Reports
+            </a>
+            <a href="/documents" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                Documents
+            </a>
+            <a href="/report-form" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Report Form
+            </a>
+            <a href="/automate" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Automate
+            </a>
+            <a href="/settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Settings
+            </a>
+            <a href="/scrcpy-agent" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Scrcpy Agent
+            </a>
+        </nav>
+
+        <!-- User Info -->
+        <div class="absolute bottom-4 left-4 right-4">
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-100">
+                <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold" id="userInitial">A</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium" id="userName">Admin</p>
+                    <p class="text-xs text-gray-500" id="userRole">Administrator</p>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-gray-900">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-64 p-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold">Daily Reports</h2>
+                <p class="text-gray-500">Device status monitoring and reporting</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="date" id="reportDate" class="px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                <select id="templateSelect" class="px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="">-- Select Template --</option>
+                </select>
+                <button onclick="generateReport()" id="generateBtn" class="btn-primary px-5 py-2.5 rounded-lg flex items-center gap-2 font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span id="generateBtnText">Refresh Status</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <!-- Total Devices -->
+            <div class="card rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Total Devices</p>
+                        <p class="text-3xl font-bold" id="totalDevices">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Online -->
+            <div class="card rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Online</p>
+                        <p class="text-3xl font-bold text-green-500" id="onlineCount">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Offline -->
+            <div class="card rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Offline</p>
+                        <p class="text-3xl font-bold text-red-500" id="offlineCount">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Uptime -->
+            <div class="card rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Uptime</p>
+                        <p class="text-3xl font-bold text-blue-400" id="uptimePercent">-</p>
+                    </div>
+                    <div class="w-12 h-12 relative">
+                        <svg class="progress-ring w-12 h-12" viewBox="0 0 44 44">
+                            <circle class="text-gray-700" stroke="currentColor" stroke-width="4" fill="none" r="18" cx="22" cy="22"/>
+                            <circle id="progressCircle" class="progress-ring-circle text-blue-400" stroke="currentColor" stroke-width="4" fill="none" r="18" cx="22" cy="22"
+                                    stroke-dasharray="113.1" stroke-dashoffset="113.1" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts and Quick Actions -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Donut Chart -->
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">Status Distribution</h3>
+                <div class="flex items-center justify-center">
+                    <div class="donut-chart relative">
+                        <svg viewBox="0 0 160 160" class="w-40 h-40">
+                            <circle cx="80" cy="80" r="60" fill="none" stroke="#e5e7eb" stroke-width="20"/>
+                            <circle id="onlineArc" class="donut-segment" cx="80" cy="80" r="60" fill="none" stroke="#78BF5E" stroke-width="20"
+                                    stroke-dasharray="0 377" stroke-linecap="round" transform="rotate(-90 80 80)"/>
+                            <circle id="offlineArc" class="donut-segment" cx="80" cy="80" r="60" fill="none" stroke="#F63049" stroke-width="20"
+                                    stroke-dasharray="0 377" stroke-linecap="round" transform="rotate(-90 80 80)"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold" id="chartTotal">0</p>
+                                <p class="text-xs text-gray-500">Total</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-center gap-6 mt-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="text-sm text-gray-500">Online</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span class="text-sm text-gray-500">Offline</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card rounded-xl p-6 lg:col-span-2">
+                <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <button onclick="sendReportEmail()" class="btn-success p-4 rounded-lg flex flex-col items-center gap-2 hover:scale-105 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="text-sm font-medium">Send Email</span>
+                    </button>
+                    <button onclick="exportCSV()" class="bg-gray-200 hover:bg-gray-300 p-4 rounded-lg flex flex-col items-center gap-2 hover:scale-105 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        <span class="text-sm font-medium">Export CSV</span>
+                    </button>
+                    <button onclick="printReport()" class="bg-gray-200 hover:bg-gray-300 p-4 rounded-lg flex flex-col items-center gap-2 hover:scale-105 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                        <span class="text-sm font-medium">Print</span>
+                    </button>
+                    <button onclick="printWithTemplate()" class="bg-green-600 hover:bg-green-500 p-4 rounded-lg flex flex-col items-center gap-2 hover:scale-105 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span class="text-sm font-medium">Print Template</span>
+                    </button>
+                    <button onclick="showHistory()" class="bg-gray-200 hover:bg-gray-300 p-4 rounded-lg flex flex-col items-center gap-2 hover:scale-105 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="text-sm font-medium">History</span>
+                    </button>
+                </div>
+
+                <!-- Last Generated Info -->
+                <div class="mt-4 p-3 bg-gray-100 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-sm text-gray-500">Last Generated:</span>
+                        </div>
+                        <span class="text-sm font-medium" id="lastGenerated">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Table -->
+        <div class="card rounded-xl p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Device Status Report</h3>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <input type="text" id="searchReport" placeholder="Search devices..."
+                               class="pl-10 pr-4 py-2 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 w-64"
+                               oninput="filterReport()">
+                        <svg class="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                    <select id="filterStatus" onchange="filterReport()" class="px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="all">All Status</option>
+                        <option value="online">Online Only</option>
+                        <option value="offline">Offline Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full" id="reportTable">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">#</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Status</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">IP Address</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Device Name</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Location</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Work Center</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">App Status</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Last Check</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportBody">
+                        <tr>
+                            <td colspan="9" class="px-4 py-12 text-center text-gray-500">
+                                <div class="flex flex-col items-center gap-3">
+                                    <svg class="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    <p>Loading data from Dashboard cache...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- History Modal -->
+        <div id="historyModal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-center justify-center z-50">
+            <div class="card rounded-2xl p-6 w-full max-w-4xl max-h-[80vh] overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">Report History</h3>
+                    <button onclick="hideHistory()" class="text-gray-500 hover:text-gray-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="overflow-y-auto max-h-[60vh]">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Date</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Total</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Online</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Offline</th>
+                                <th class="px-4 py-3 text-left text-sm font-medium text-gray-500">Uptime</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template Preview Modal -->
+        <div id="templateModal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-center justify-center z-50">
+            <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+                <div class="flex items-center justify-between p-4 bg-gray-100 border-b">
+                    <h3 class="text-xl font-bold text-gray-800">Report Preview</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="doPrintTemplate()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Print
+                        </button>
+                        <button onclick="hideTemplateModal()" class="text-gray-500 hover:text-gray-700 p-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-y-auto max-h-[80vh] p-6 bg-white" id="templatePreviewContent">
+                    <!-- Template content will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Email Modal -->
+        <div id="emailModal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-center justify-center z-50">
+            <div class="card rounded-2xl w-full max-w-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">Send Report Email</h3>
+                    <button onclick="hideEmailModal()" class="text-gray-500 hover:text-gray-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Template Selection -->
+                    <div>
+                        <label class="block text-sm text-gray-500 mb-2">Email Template</label>
+                        <select id="emailTemplateSelect" class="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="">Default (Simple Table)</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Select a template to format the email</p>
+                    </div>
+
+                    <!-- Preview Button -->
+                    <button onclick="previewEmailTemplate()" class="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Preview Email
+                    </button>
+
+                    <!-- Email Preview Area -->
+                    <div id="emailPreviewArea" class="hidden">
+                        <label class="block text-sm text-gray-500 mb-2">Preview</label>
+                        <div id="emailPreviewContent" class="max-h-64 overflow-y-auto bg-white rounded-lg p-4 text-gray-800 text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Report Summary -->
+                    <div class="p-4 bg-gray-100 rounded-lg">
+                        <h4 class="text-sm font-medium mb-2">Report Summary</h4>
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <p class="text-2xl font-bold text-blue-400" id="emailTotal">0</p>
+                                <p class="text-xs text-gray-500">Total</p>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-green-400" id="emailOnline">0</p>
+                                <p class="text-xs text-gray-500">Online</p>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-red-400" id="emailOffline">0</p>
+                                <p class="text-xs text-gray-500">Offline</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 mt-6">
+                    <button onclick="hideEmailModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Cancel</button>
+                    <button onclick="confirmSendEmail()" id="sendEmailBtn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Send Email
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let reportData = [];
+        let filteredData = [];
+        let devices = [];
+        let pingStatus = {};
+        let isGenerating = false;
+        let savedTemplates = [];
+        let selectedTemplate = null;
+        let usingCachedData = false;
+
+        // Set default date to today
+        document.getElementById('reportDate').valueAsDate = new Date();
+
+        // Load data from Dashboard cache (localStorage)
+        function loadFromDashboardCache() {
+            const cachedStatus = JSON.parse(localStorage.getItem('dashboard_device_status') || '{}');
+            const cachedTimeStr = localStorage.getItem('dashboard_last_check_time');
+            const cachedTime = cachedTimeStr ? parseInt(cachedTimeStr) : null;
+
+            if (Object.keys(cachedStatus).length === 0) {
+                return false; // No cached data
+            }
+
+            // Build report data from cached status
+            reportData = devices.map((d, i) => {
+                const status = cachedStatus[d.IP];
+                const isOnline = status && status.online;
+                return {
+                    no: i + 1,
+                    ip: d.IP || '',
+                    name: d['Asset Name'] || '',
+                    location: d['Default Location'] || '',
+                    workCenter: d['Work Center'] || '',
+                    project: d['Project'] || '',
+                    status: isOnline ? 'online' : 'offline',
+                    appStatus: isOnline ? 'RUNNING' : 'Unknown',
+                    lastCheck: status && status.checked_at ? new Date(status.checked_at).toLocaleString() : (cachedTime ? new Date(cachedTime).toLocaleString() : '-')
+                };
+            });
+
+            filteredData = [...reportData];
+            renderReport();
+            updateStats();
+            updateChart();
+
+            // Show cached data indicator
+            usingCachedData = true;
+            const lastGenEl = document.getElementById('lastGenerated');
+            if (cachedTime) {
+                lastGenEl.innerHTML = `<span class="text-yellow-400">📋 From Dashboard:</span> ${new Date(cachedTime).toLocaleString()}`;
+            } else {
+                lastGenEl.innerHTML = `<span class="text-yellow-400">📋 Using cached data</span>`;
+            }
+
+            return true;
+        }
+
+        // Load saved templates
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/report-templates');
+                const data = await response.json();
+                savedTemplates = data.templates || [];
+                renderTemplateOptions();
+            } catch (e) {
+                console.error('Load templates error:', e);
+            }
+        }
+
+        function renderTemplateOptions() {
+            const select = document.getElementById('templateSelect');
+            const emailSelect = document.getElementById('emailTemplateSelect');
+
+            select.innerHTML = '<option value="">-- Select Template --</option>';
+            emailSelect.innerHTML = '<option value="">Default (Simple Table)</option>';
+
+            savedTemplates.forEach(t => {
+                // Print template select
+                const option = document.createElement('option');
+                option.value = t.id;
+                option.textContent = t.name;
+                select.appendChild(option);
+
+                // Email template select
+                const emailOption = document.createElement('option');
+                emailOption.value = t.id;
+                emailOption.textContent = t.name;
+                emailSelect.appendChild(emailOption);
+            });
+        }
+
+        document.getElementById('templateSelect').addEventListener('change', (e) => {
+            const templateId = e.target.value;
+            selectedTemplate = savedTemplates.find(t => t.id === templateId) || null;
+        });
+
+        // Load devices
+        async function loadDevices() {
+            try {
+                const response = await fetch('/api/devices');
+                const data = await response.json();
+                devices = data.devices || [];
+
+                // Try localStorage cache first, then fallback to server cache
+                const hasCachedData = loadFromDashboardCache();
+                if (!hasCachedData) {
+                    await loadFromServerCache();
+                }
+            } catch (e) {
+                console.error('Load devices error:', e);
+            }
+        }
+
+        // Fallback: load status from server's background checker cache
+        async function loadFromServerCache() {
+            try {
+                const response = await fetch('/api/dashboard/status');
+                const statusData = await response.json();
+                const serverDevices = statusData.devices || {};
+
+                if (Object.keys(serverDevices).length === 0) {
+                    document.getElementById('lastGenerated').innerHTML = '<span class="text-gray-500">No cached data - Click "Refresh Status" to check devices</span>';
+                    return;
+                }
+
+                // Build report data from server cache
+                reportData = devices.map((d, i) => {
+                    const status = serverDevices[d.IP];
+                    const isOnline = status && status.online;
+                    return {
+                        no: i + 1,
+                        ip: d.IP || '',
+                        name: d['Asset Name'] || '',
+                        location: d['Default Location'] || '',
+                        workCenter: d['Work Center'] || '',
+                        project: d['Project'] || '',
+                        status: isOnline ? 'online' : 'offline',
+                        appStatus: isOnline ? 'RUNNING' : 'Unknown',
+                        lastCheck: status && status.last_checked ? new Date(status.last_checked).toLocaleString() : '-'
+                    };
+                });
+
+                filteredData = [...reportData];
+                renderReport();
+                updateStats();
+                updateChart();
+
+                usingCachedData = true;
+                const lastUpdate = statusData.last_update ? new Date(statusData.last_update).toLocaleString() : '-';
+                document.getElementById('lastGenerated').innerHTML = `<span class="text-blue-500">From Server Cache:</span> ${lastUpdate}`;
+            } catch (e) {
+                console.error('Server cache load error:', e);
+                document.getElementById('lastGenerated').innerHTML = '<span class="text-gray-500">No cached data - Click "Refresh Status" to check devices</span>';
+            }
+        }
+
+        // Generate report (ping all devices and update cache)
+        async function generateReport() {
+            if (isGenerating) return;
+
+            const ips = devices.map(d => d.IP).filter(ip => ip);
+            if (ips.length === 0) {
+                alert('No devices found');
+                return;
+            }
+
+            isGenerating = true;
+            const btn = document.getElementById('generateBtn');
+            const btnText = document.getElementById('generateBtnText');
+            btn.disabled = true;
+            btnText.innerHTML = '<div class="loading-spinner"></div>';
+
+            try {
+                const response = await fetch('/api/dashboard/ping', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ ips })
+                });
+                const data = await response.json();
+                pingStatus = data.results || {};
+
+                // Update localStorage cache (sync with Dashboard)
+                localStorage.setItem('dashboard_device_status', JSON.stringify(pingStatus));
+                localStorage.setItem('dashboard_last_check_time', Date.now().toString());
+
+                // Build report data
+                reportData = devices.map((d, i) => {
+                    const status = pingStatus[d.IP];
+                    const isOnline = status && status.online;
+                    return {
+                        no: i + 1,
+                        ip: d.IP || '',
+                        name: d['Asset Name'] || '',
+                        location: d['Default Location'] || '',
+                        workCenter: d['Work Center'] || '',
+                        project: d['Project'] || '',
+                        status: isOnline ? 'online' : 'offline',
+                        appStatus: isOnline ? 'RUNNING' : 'Unknown',
+                        lastCheck: status && status.checked_at ? new Date(status.checked_at).toLocaleString() : '-'
+                    };
+                });
+
+                filteredData = [...reportData];
+                renderReport();
+                updateStats();
+                updateChart();
+
+                // Update last generated time (fresh data indicator)
+                usingCachedData = false;
+                document.getElementById('lastGenerated').innerHTML = `<span class="text-green-400">✓ Fresh data:</span> ${new Date().toLocaleString()}`;
+
+                // Save report to database
+                await saveReport();
+
+            } catch (e) {
+                console.error('Generate report error:', e);
+                alert('Error generating report');
+            } finally {
+                isGenerating = false;
+                btn.disabled = false;
+                btnText.textContent = 'Refresh Status';
+            }
+        }
+
+        function renderReport() {
+            const tbody = document.getElementById('reportBody');
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-4 py-12 text-center text-gray-500">
+                            No devices found matching your criteria
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filteredData.map(d => `
+                <tr class="table-row border-b border-gray-200">
+                    <td class="px-4 py-3 text-gray-500">${d.no}</td>
+                    <td class="px-4 py-3">
+                        <span class="status-badge ${d.status}">
+                            <span class="pulse-dot ${d.status}"></span>
+                            ${d.status === 'online' ? 'Online' : 'Offline'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-sm">${d.ip}</td>
+                    <td class="px-4 py-3 font-medium">${d.name}</td>
+                    <td class="px-4 py-3 text-gray-600">${d.location}</td>
+                    <td class="px-4 py-3 text-gray-600">${d.workCenter}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 text-xs rounded-full ${
+                            d.appStatus === 'RUNNING' ? 'bg-green-500/20 text-green-400' :
+                            d.appStatus === 'STOPPED' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-gray-500/20 text-gray-500'
+                        }">${d.appStatus || '-'}</span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500">${d.lastCheck}</td>
+                    <td class="px-4 py-3">
+                        <button onclick="viewDevice('${d.ip}')" class="text-green-600 hover:text-green-500 mr-2" title="View">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                        <button onclick="pingDevice('${d.ip}')" class="text-green-400 hover:text-green-300" title="Ping">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z"/>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterReport() {
+            const search = document.getElementById('searchReport').value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            filteredData = reportData.filter(d => {
+                const matchSearch = !search ||
+                    d.ip.toLowerCase().includes(search) ||
+                    d.name.toLowerCase().includes(search) ||
+                    d.location.toLowerCase().includes(search) ||
+                    d.workCenter.toLowerCase().includes(search);
+
+                const matchStatus = statusFilter === 'all' || d.status === statusFilter;
+
+                return matchSearch && matchStatus;
+            });
+
+            renderReport();
+        }
+
+        function updateStats() {
+            const total = reportData.length;
+            const online = reportData.filter(d => d.status === 'online').length;
+            const offline = total - online;
+            const uptime = total > 0 ? Math.round((online / total) * 100) : 0;
+
+            document.getElementById('totalDevices').textContent = total;
+            document.getElementById('onlineCount').textContent = online;
+            document.getElementById('offlineCount').textContent = offline;
+            document.getElementById('uptimePercent').textContent = uptime + '%';
+
+            // Update progress ring
+            const circle = document.getElementById('progressCircle');
+            const circumference = 2 * Math.PI * 18;
+            const offset = circumference - (uptime / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        function updateChart() {
+            const total = reportData.length;
+            const online = reportData.filter(d => d.status === 'online').length;
+            const offline = total - online;
+
+            document.getElementById('chartTotal').textContent = total;
+
+            // Calculate arc lengths (circumference = 2 * PI * 60 = ~377)
+            const circumference = 377;
+            const onlinePercent = total > 0 ? online / total : 0;
+            const offlinePercent = total > 0 ? offline / total : 0;
+
+            const onlineArc = document.getElementById('onlineArc');
+            const offlineArc = document.getElementById('offlineArc');
+
+            // Online arc
+            onlineArc.setAttribute('stroke-dasharray', `${onlinePercent * circumference} ${circumference}`);
+
+            // Offline arc (starts where online ends)
+            offlineArc.setAttribute('stroke-dasharray', `${offlinePercent * circumference} ${circumference}`);
+            offlineArc.setAttribute('stroke-dashoffset', `-${onlinePercent * circumference}`);
+        }
+
+        async function saveReport() {
+            const date = document.getElementById('reportDate').value;
+            const total = reportData.length;
+            const online = reportData.filter(d => d.status === 'online').length;
+            const offline = total - online;
+
+            try {
+                await fetch('/api/reports/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        date,
+                        total,
+                        online,
+                        offline,
+                        devices: reportData
+                    })
+                });
+            } catch (e) {
+                console.error('Save report error:', e);
+            }
+        }
+
+        function sendReportEmail() {
+            if (reportData.length === 0) {
+                alert('Please generate a report first');
+                return;
+            }
+
+            // Update modal stats
+            const total = reportData.length;
+            const online = reportData.filter(d => d.status === 'online').length;
+            const offline = total - online;
+
+            document.getElementById('emailTotal').textContent = total;
+            document.getElementById('emailOnline').textContent = online;
+            document.getElementById('emailOffline').textContent = offline;
+
+            // Sync template from header dropdown to email modal
+            const headerTemplateId = document.getElementById('templateSelect').value;
+            document.getElementById('emailTemplateSelect').value = headerTemplateId;
+
+            // Reset preview (will show when user clicks Preview)
+            document.getElementById('emailPreviewArea').classList.add('hidden');
+
+            // Show modal
+            document.getElementById('emailModal').classList.remove('hidden');
+            document.getElementById('emailModal').classList.add('flex');
+        }
+
+        function hideEmailModal() {
+            document.getElementById('emailModal').classList.add('hidden');
+            document.getElementById('emailModal').classList.remove('flex');
+        }
+
+        function previewEmailTemplate() {
+            const templateId = document.getElementById('emailTemplateSelect').value;
+            const template = savedTemplates.find(t => t.id === templateId);
+
+            let content;
+            if (template) {
+                content = renderTemplateContent(template);
+            } else {
+                content = renderDefaultEmailContent();
+            }
+
+            document.getElementById('emailPreviewContent').innerHTML = content;
+            document.getElementById('emailPreviewArea').classList.remove('hidden');
+        }
+
+        function renderDefaultEmailContent() {
+            const total = reportData.length;
+            const online = reportData.filter(d => d.status === 'online').length;
+            const offline = total - online;
+            const uptime = total > 0 ? Math.round((online / total) * 100) : 0;
+            const reportDate = document.getElementById('reportDate').value;
+
+            return `
+                <div style="font-family: Arial, sans-serif;">
+                    <h2 style="color: #1f2937; margin-bottom: 16px;">TV Device Status Report</h2>
+                    <p style="color: #6b7280; margin-bottom: 16px;">Date: ${reportDate}</p>
+
+                    <table style="width: 100%; margin-bottom: 16px; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 12px; background: #3b82f6; color: white; text-align: center; border-radius: 8px 0 0 8px;">
+                                <strong>${total}</strong><br><small>Total</small>
+                            </td>
+                            <td style="padding: 12px; background: #A8DF8E; color: white; text-align: center;">
+                                <strong>${online}</strong><br><small>Online</small>
+                            </td>
+                            <td style="padding: 12px; background: #F63049; color: white; text-align: center;">
+                                <strong>${offline}</strong><br><small>Offline</small>
+                            </td>
+                            <td style="padding: 12px; background: #8b5cf6; color: white; text-align: center; border-radius: 0 8px 8px 0;">
+                                <strong>${uptime}%</strong><br><small>Uptime</small>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #374151; color: white;">
+                                <th style="padding: 8px; border: 1px solid #4b5563;">Status</th>
+                                <th style="padding: 8px; border: 1px solid #4b5563;">IP</th>
+                                <th style="padding: 8px; border: 1px solid #4b5563;">Name</th>
+                                <th style="padding: 8px; border: 1px solid #4b5563;">Location</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${reportData.slice(0, 10).map(d => `
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                                        <span style="color: ${d.status === 'online' ? '#A8DF8E' : '#F63049'};">
+                                            ${d.status === 'online' ? '● Online' : '● Offline'}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 6px; border: 1px solid #e5e7eb; font-family: monospace;">${d.ip}</td>
+                                    <td style="padding: 6px; border: 1px solid #e5e7eb;">${d.name}</td>
+                                    <td style="padding: 6px; border: 1px solid #e5e7eb;">${d.location}</td>
+                                </tr>
+                            `).join('')}
+                            ${reportData.length > 10 ? `<tr><td colspan="4" style="padding: 8px; text-align: center; color: #6b7280;">... and ${reportData.length - 10} more devices</td></tr>` : ''}
+                        </tbody>
+                    </table>
+
+                    <p style="color: #9ca3af; font-size: 12px; margin-top: 16px;">Generated by ADB Control Center</p>
+                </div>
+            `;
+        }
+
+        async function confirmSendEmail() {
+            const templateId = document.getElementById('emailTemplateSelect').value;
+            const btn = document.getElementById('sendEmailBtn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Sending...';
+
+            try {
+                // Format devices data for email (match expected format)
+                const emailDevices = reportData.map(d => ({
+                    ip: d.ip,
+                    name: d.name,
+                    location: d.location,
+                    status: d.status,
+                    appStatus: d.appStatus || 'Unknown'
+                }));
+
+                const response = await fetch('/api/reports/send-email', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        total: reportData.length,
+                        online: reportData.filter(d => d.status === 'online').length,
+                        offline: reportData.filter(d => d.status === 'offline').length,
+                        devices: emailDevices,
+                        template_id: templateId || null
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Report email sent successfully!');
+                    hideEmailModal();
+                } else {
+                    alert('Failed to send email: ' + (data.message || 'Unknown error'));
+                }
+            } catch (e) {
+                console.error('Send email error:', e);
+                alert('Error sending email');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> Send Email';
+            }
+        }
+
+        function exportCSV() {
+            if (reportData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const headers = ['No', 'IP Address', 'Device Name', 'Location', 'Work Center', 'Project', 'Status', 'Last Check'];
+            const rows = reportData.map(d => [d.no, d.ip, d.name, d.location, d.workCenter, d.project, d.status, d.lastCheck]);
+
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+            });
+
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `report_${document.getElementById('reportDate').value}.csv`;
+            a.click();
+        }
+
+        function printReport() {
+            window.print();
+        }
+
+        function printWithTemplate() {
+            if (!selectedTemplate) {
+                alert('Please select a template first');
+                return;
+            }
+            if (reportData.length === 0) {
+                alert('Please generate a report first');
+                return;
+            }
+
+            const content = renderTemplateContent(selectedTemplate);
+            document.getElementById('templatePreviewContent').innerHTML = content;
+            document.getElementById('templateModal').classList.remove('hidden');
+            document.getElementById('templateModal').classList.add('flex');
+        }
+
+        function hideTemplateModal() {
+            document.getElementById('templateModal').classList.add('hidden');
+            document.getElementById('templateModal').classList.remove('flex');
+        }
+
+        function renderTemplateContent(template) {
+            const total = reportData.length;
+            const online = reportData.filter(d => d.status === 'online').length;
+            const offline = total - online;
+            const uptime = total > 0 ? Math.round((online / total) * 100) : 0;
+            const reportDate = document.getElementById('reportDate').value;
+            const now = new Date();
+
+            // Get template settings with defaults
+            const settings = template.settings || {};
+            const title = settings.title || 'Daily TV Status Report';
+            const company = settings.company || 'THE-Corp';
+            const department = settings.department || 'IT Department';
+            const documentNo = settings.document_no || 'RPT-001';
+            const version = settings.version || '1.0';
+            const preparedBy = settings.prepared_by || 'IT Admin';
+
+            let html = '<div class="text-gray-800" style="font-family: Arial, sans-serif;">';
+
+            template.elements.forEach(el => {
+                switch (el.type) {
+                    case 'header':
+                        html += `
+                            <div class="text-center mb-6">
+                                <h1 class="text-2xl font-bold text-gray-800">${title}</h1>
+                                <p class="text-gray-500">TV Device Status Monitoring Report</p>
+                            </div>`;
+                        break;
+
+                    case 'company-info':
+                        html += `
+                            <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-green-200">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h2 class="text-xl font-bold text-green-700">${company}</h2>
+                                        <p class="text-gray-600">${department}</p>
+                                    </div>
+                                    <div class="text-right text-sm text-gray-500">
+                                        <p>Document No: ${documentNo}</p>
+                                        <p>Version: ${version}</p>
+                                    </div>
+                                </div>
+                            </div>`;
+                        break;
+
+                    case 'date-info':
+                        html += `
+                            <div class="mb-4 grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
+                                <div>
+                                    <span class="text-xs text-gray-500">Report Date</span>
+                                    <p class="font-medium">${new Date(reportDate).toLocaleDateString('th-TH')}</p>
+                                </div>
+                                <div>
+                                    <span class="text-xs text-gray-500">Report Time</span>
+                                    <p class="font-medium">${now.toLocaleTimeString('th-TH')}</p>
+                                </div>
+                                <div>
+                                    <span class="text-xs text-gray-500">Prepared By</span>
+                                    <p class="font-medium">${preparedBy}</p>
+                                </div>
+                            </div>`;
+                        break;
+
+                    case 'stats-summary':
+                        html += `
+                            <div class="mb-6 grid grid-cols-4 gap-4">
+                                <div class="p-4 bg-blue-50 rounded-lg text-center">
+                                    <p class="text-3xl font-bold text-blue-600">${total}</p>
+                                    <p class="text-sm text-gray-600">Total Devices</p>
+                                </div>
+                                <div class="p-4 bg-green-50 rounded-lg text-center">
+                                    <p class="text-3xl font-bold text-green-600">${online}</p>
+                                    <p class="text-sm text-gray-600">Online</p>
+                                </div>
+                                <div class="p-4 bg-red-50 rounded-lg text-center">
+                                    <p class="text-3xl font-bold text-red-600">${offline}</p>
+                                    <p class="text-sm text-gray-600">Offline</p>
+                                </div>
+                                <div class="p-4 bg-green-50 rounded-lg text-center">
+                                    <p class="text-3xl font-bold text-green-600">${uptime}%</p>
+                                    <p class="text-sm text-gray-600">Uptime</p>
+                                </div>
+                            </div>`;
+                        break;
+
+                    case 'device-table':
+                        html += `
+                            <div class="mb-6">
+                                <h3 class="text-lg font-bold text-gray-700 mb-3">Device Status Summary</h3>
+                                <table class="w-full border-collapse border border-gray-300 text-sm">
+                                    <thead>
+                                        <tr class="bg-gray-100">
+                                            <th class="border border-gray-300 px-3 py-2 text-left">No.</th>
+                                            <th class="border border-gray-300 px-3 py-2 text-left">Device Name</th>
+                                            <th class="border border-gray-300 px-3 py-2 text-left">IP Address</th>
+                                            <th class="border border-gray-300 px-3 py-2 text-left">Location</th>
+                                            <th class="border border-gray-300 px-3 py-2 text-left">Status</th>
+                                            <th class="border border-gray-300 px-3 py-2 text-left">App Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${reportData.map((d, i) => `
+                                            <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                                                <td class="border border-gray-300 px-3 py-2">${i + 1}</td>
+                                                <td class="border border-gray-300 px-3 py-2">${d.name}</td>
+                                                <td class="border border-gray-300 px-3 py-2 font-mono text-xs">${d.ip}</td>
+                                                <td class="border border-gray-300 px-3 py-2">${d.location}</td>
+                                                <td class="border border-gray-300 px-3 py-2">
+                                                    <span class="px-2 py-1 text-xs rounded-full ${d.status === 'online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                                        ${d.status === 'online' ? 'Online' : 'Offline'}
+                                                    </span>
+                                                </td>
+                                                <td class="border border-gray-300 px-3 py-2">
+                                                    <span class="px-2 py-1 text-xs rounded-full ${
+                                                        d.appStatus === 'RUNNING' ? 'bg-teal-100 text-teal-700' :
+                                                        d.appStatus === 'STOPPED' ? 'bg-yellow-100 text-yellow-700' :
+                                                        'bg-gray-100 text-gray-500'
+                                                    }">
+                                                        ${d.appStatus || '-'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>`;
+                        break;
+
+                    case 'offline-table':
+                        const offlineDevices = reportData.filter(d => d.status === 'offline');
+                        html += `
+                            <div class="mb-6">
+                                <h3 class="text-lg font-bold text-red-600 mb-3">Offline Devices Requiring Attention</h3>
+                                ${offlineDevices.length === 0 ? '<p class="text-green-600 p-3 bg-green-50 rounded">All devices are online!</p>' : `
+                                <table class="w-full border-collapse border border-red-300 text-sm">
+                                    <thead>
+                                        <tr class="bg-red-50">
+                                            <th class="border border-red-300 px-3 py-2 text-left">No.</th>
+                                            <th class="border border-red-300 px-3 py-2 text-left">Device Name</th>
+                                            <th class="border border-red-300 px-3 py-2 text-left">IP Address</th>
+                                            <th class="border border-red-300 px-3 py-2 text-left">Location</th>
+                                            <th class="border border-red-300 px-3 py-2 text-left">Action Required</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${offlineDevices.map((d, i) => `
+                                            <tr class="bg-white">
+                                                <td class="border border-red-300 px-3 py-2">${i + 1}</td>
+                                                <td class="border border-red-300 px-3 py-2">${d.name}</td>
+                                                <td class="border border-red-300 px-3 py-2 font-mono text-xs">${d.ip}</td>
+                                                <td class="border border-red-300 px-3 py-2">${d.location}</td>
+                                                <td class="border border-red-300 px-3 py-2 text-red-600">Check connectivity</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>`}
+                            </div>`;
+                        break;
+
+                    case 'notes':
+                        html += `
+                            <div class="mb-6">
+                                <h3 class="text-lg font-bold text-gray-700 mb-2">Notes</h3>
+                                <div class="border border-gray-300 rounded p-4 min-h-[100px] bg-gray-50">
+                                    <p class="text-gray-500 text-sm italic">No additional notes</p>
+                                </div>
+                            </div>`;
+                        break;
+
+                    case 'signature':
+                        html += `
+                            <div class="mt-8 grid grid-cols-3 gap-8">
+                                <div class="text-center">
+                                    <div class="border-t border-gray-400 pt-2 mt-12">
+                                        <p class="font-medium">Prepared By</p>
+                                        <p class="text-sm text-gray-500">Date: ___/___/______</p>
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="border-t border-gray-400 pt-2 mt-12">
+                                        <p class="font-medium">Reviewed By</p>
+                                        <p class="text-sm text-gray-500">Date: ___/___/______</p>
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="border-t border-gray-400 pt-2 mt-12">
+                                        <p class="font-medium">Approved By</p>
+                                        <p class="text-sm text-gray-500">Date: ___/___/______</p>
+                                    </div>
+                                </div>
+                            </div>`;
+                        break;
+
+                    case 'divider':
+                        html += `<hr class="my-4 border-gray-300">`;
+                        break;
+                }
+            });
+
+            html += '</div>';
+            return html;
+        }
+
+        function doPrintTemplate() {
+            const content = document.getElementById('templatePreviewContent').innerHTML;
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Report - ${document.getElementById('reportDate').value}</title>
+                    <link rel="stylesheet" href="/static/css/tailwind.css">
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        @media print {
+                            body { padding: 0; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${content}
+                    <script>
+                        setTimeout(() => {
+                            window.print();
+                            window.close();
+                        }, 500);
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function showHistory() {
+            document.getElementById('historyModal').classList.remove('hidden');
+            document.getElementById('historyModal').classList.add('flex');
+            loadHistory();
+        }
+
+        function hideHistory() {
+            document.getElementById('historyModal').classList.add('hidden');
+            document.getElementById('historyModal').classList.remove('flex');
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/reports/history');
+                const data = await response.json();
+                const reports = data.reports || [];
+
+                const tbody = document.getElementById('historyBody');
+                if (reports.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No report history</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = reports.map(r => {
+                    const uptime = r.total_devices > 0 ? Math.round((r.online_count / r.total_devices) * 100) : 0;
+                    return `
+                        <tr class="border-b border-gray-200 hover:bg-gray-100">
+                            <td class="px-4 py-3">${r.report_date}</td>
+                            <td class="px-4 py-3">${r.total_devices}</td>
+                            <td class="px-4 py-3 text-green-500">${r.online_count}</td>
+                            <td class="px-4 py-3 text-red-500">${r.offline_count}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-blue-500 rounded-full" style="width: ${uptime}%"></div>
+                                    </div>
+                                    <span class="text-sm">${uptime}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('Load history error:', e);
+            }
+        }
+
+        function viewDevice(ip) {
+            window.open(`/remote/${ip}`, '_blank');
+        }
+
+        async function pingDevice(ip) {
+            try {
+                const response = await fetch('/api/dashboard/ping', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ ips: [ip] })
+                });
+                const data = await response.json();
+                const result = data.results[ip];
+                alert(`${ip}: ${result.online ? 'Online' : 'Offline'}`);
+            } catch (e) {
+                alert('Ping failed');
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+                if (data.authenticated) {
+                    document.getElementById('userName').textContent = data.user.username;
+                    document.getElementById('userRole').textContent = data.user.role === 'admin' ? 'Administrator' : 'User';
+                    document.getElementById('userInitial').textContent = data.user.username[0].toUpperCase();
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (e) {
+                window.location.href = '/login';
+            }
+        }
+
+        // Close modal on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideHistory();
+                hideTemplateModal();
+                hideEmailModal();
+            }
+        });
+
+        // Initialize — load all data in parallel
+        Promise.all([
+            loadUserInfo(),
+            loadDevices(),
+            loadTemplates(),
+            loadHistory()
+        ]).catch(e => console.error('Init error:', e));
+    </script>
+</body>
+</html>

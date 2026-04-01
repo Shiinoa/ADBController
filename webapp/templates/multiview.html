@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ADB Control Center - Multi-View TV Device Monitoring">
+    <title>Multi-View - ADB Control Center</title>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .tv-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            transition: all 0.3s;
+        }
+        .tv-card:hover {
+            border-color: var(--accent);
+            transform: scale(1.02);
+        }
+        .tv-card.offline {
+            opacity: 0.6;
+        }
+        .tv-screen {
+            background: #000;
+            aspect-ratio: 16/9;
+            position: relative;
+            overflow: hidden;
+        }
+        .tv-screen img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .tv-screen .placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #64748b;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-dot.online {
+            background: #A8DF8E;
+            box-shadow: 0 0 8px #A8DF8E;
+        }
+        .status-dot.offline {
+            background: #F63049;
+        }
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-overlay.hidden,
+        .refresh-indicator.hidden {
+            display: none !important;
+        }
+        .refresh-indicator {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 50%;
+            padding: 4px;
+            z-index: 5;
+        }
+        .grid-2x2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3x3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4x4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-5x5 { grid-template-columns: repeat(5, 1fr); }
+
+        /* Fullscreen Mode */
+        .fullscreen-mode {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            overflow: hidden;
+        }
+        .fullscreen-mode aside {
+            display: none !important;
+        }
+        .fullscreen-mode main {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .fullscreen-mode .fullscreen-header {
+            position: relative;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(8px);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .fullscreen-mode .fullscreen-grid-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+        .fullscreen-mode .tv-card {
+            border-radius: 0.5rem;
+        }
+        .fullscreen-mode .tv-screen {
+            aspect-ratio: 16/9;
+        }
+        .fullscreen-mode #tvGrid {
+            min-height: 100%;
+        }
+        .normal-header {
+            display: flex;
+        }
+        .fullscreen-header {
+            display: none;
+        }
+        .fullscreen-mode .normal-header {
+            display: none !important;
+        }
+        .fullscreen-mode .fullscreen-header {
+            display: flex !important;
+        }
+        .fullscreen-mode .status-bar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:px-4 focus:py-2 focus:bg-green-600 focus:text-white">Skip to main content</a>
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 min-h-screen card border-r border-gray-200 p-4 fixed left-0 top-0" aria-label="Main navigation">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg">ADB Control</h1>
+                    <p class="text-xs text-gray-600">Multi-View</p>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <a href="/dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="/control" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    </svg>
+                    Control Panel
+                </a>
+                <a href="/multiview" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                    </svg>
+                    Multi-View
+                </a>
+                <a href="/devices" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    TV Devices
+                </a>
+                <a href="/reports" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Daily Reports
+                </a>
+                <a href="/documents" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    Documents
+                </a>
+                <a href="/automate" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Automate
+                </a>
+                <a href="/settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Settings
+                </a>
+                <a href="/scrcpy-agent" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Scrcpy Agent
+                </a>
+            </nav>
+
+            <!-- User Info -->
+            <div class="absolute bottom-4 left-4 right-4">
+                <div class="flex items-center gap-3 p-3 bg-gray-100 rounded-lg">
+                    <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-sm font-bold" id="userAvatar">?</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium truncate" id="userName">Loading...</p>
+                        <p class="text-xs text-gray-600" id="userRole">-</p>
+                    </div>
+                    <button onclick="logout()" class="text-gray-600 hover:text-gray-900" title="Logout" aria-label="Logout">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 p-6 ml-64">
+            <!-- Fullscreen Header (shown in fullscreen mode) -->
+            <div class="fullscreen-header">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-lg font-bold">Multi-View Monitor</h2>
+                    <div class="flex items-center gap-4 text-sm">
+                        <span class="text-gray-600">Viewing: <span class="font-bold text-gray-900" id="fsViewingCount">0</span></span>
+                        <div class="flex items-center gap-1">
+                            <div class="status-dot online"></div>
+                            <span id="fsOnlineCount">0</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <div class="status-dot offline"></div>
+                            <span id="fsOfflineCount">0</span>
+                        </div>
+                        <span class="text-gray-500">|</span>
+                        <span class="text-gray-600">Last: <span id="fsLastRefresh">-</span></span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select id="fsProjectFilter" onchange="filterByProjectFromFS()" aria-label="Filter by project" class="px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-sm focus:outline-none">
+                        <option value="">All Projects</option>
+                    </select>
+                    <select id="fsGridSize" onchange="changeGridSizeFromFS()" aria-label="Grid size" class="px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-sm focus:outline-none">
+                        <option value="2x2">2x2</option>
+                        <option value="3x3" selected>3x3</option>
+                        <option value="4x4">4x4</option>
+                        <option value="5x5">5x5</option>
+                    </select>
+                    <select id="fsRefreshInterval" onchange="changeRefreshIntervalFromFS()" aria-label="Refresh interval" class="px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-sm focus:outline-none">
+                        <option value="5">5s</option>
+                        <option value="10" selected>10s</option>
+                        <option value="30">30s</option>
+                        <option value="60">60s</option>
+                        <option value="0">Manual</option>
+                    </select>
+                    <button onclick="refreshAllScreenshots()" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg text-sm flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Refresh
+                    </button>
+                    <button onclick="toggleFullscreen()" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded-lg text-sm flex items-center gap-1" title="Exit Fullscreen (Esc)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Exit
+                    </button>
+                </div>
+            </div>
+
+            <!-- Normal Header -->
+            <div class="flex items-center justify-between mb-6 normal-header">
+                <div>
+                    <h2 class="text-2xl font-bold">Multi-View Monitor</h2>
+                    <p class="text-gray-600">View multiple TV screens simultaneously</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Project Filter -->
+                    <select id="projectFilter" onchange="filterByProject()" aria-label="Filter by project" class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="">All Projects</option>
+                    </select>
+
+                    <!-- Grid Size -->
+                    <select id="gridSize" onchange="changeGridSize()" aria-label="Grid size" class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="2x2">2x2 Grid</option>
+                        <option value="3x3" selected>3x3 Grid</option>
+                        <option value="4x4">4x4 Grid</option>
+                        <option value="5x5">5x5 Grid</option>
+                    </select>
+
+                    <!-- Refresh Interval -->
+                    <select id="refreshInterval" onchange="changeRefreshInterval()" aria-label="Refresh interval" class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="5">5 sec</option>
+                        <option value="10" selected>10 sec</option>
+                        <option value="30">30 sec</option>
+                        <option value="60">60 sec</option>
+                        <option value="0">Manual</option>
+                    </select>
+
+                    <!-- Refresh Button -->
+                    <button onclick="refreshAllScreenshots()" id="refreshBtn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2">
+                        <svg class="w-5 h-5" id="refreshIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Refresh All
+                    </button>
+
+                    <!-- Device Selector -->
+                    <button onclick="showDeviceSelector()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Select Devices
+                    </button>
+
+                    <!-- Fullscreen Toggle -->
+                    <button onclick="toggleFullscreen()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center gap-2" title="Fullscreen (F)" aria-label="Toggle fullscreen mode">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                        </svg>
+                        Fullscreen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="flex items-center justify-between mb-4 p-3 card rounded-lg status-bar">
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-600">Viewing:</span>
+                        <span class="font-bold" id="viewingCount">0</span>
+                        <span class="text-gray-600">devices</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="status-dot online"></div>
+                        <span id="onlineCount">0</span>
+                        <span class="text-gray-600">Online</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="status-dot offline"></div>
+                        <span id="offlineCount">0</span>
+                        <span class="text-gray-600">Offline</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 text-gray-600">
+                    <span>Last refresh:</span>
+                    <span id="lastRefresh">-</span>
+                    <span id="nextRefresh" class="text-green-600"></span>
+                </div>
+            </div>
+
+            <!-- TV Grid Container -->
+            <div class="fullscreen-grid-container">
+                <div id="tvGrid" class="grid grid-3x3 gap-4">
+                    <!-- TV cards will be inserted here -->
+                </div>
+
+                    <!-- Empty State -->
+                <div id="emptyState" class="hidden text-center py-16">
+                    <svg class="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    <h3 class="text-xl font-bold text-gray-600 mb-2">No Devices Selected</h3>
+                    <p class="text-gray-600 mb-4">Click "Select Devices" to choose which TVs to monitor</p>
+                    <button onclick="showDeviceSelector()" class="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg">
+                        Select Devices
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Device Selector Modal -->
+    <div id="deviceModal" class="fixed inset-0 bg-black/30 backdrop-blur-sm hidden items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="deviceModalTitle">
+        <div class="card rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 id="deviceModalTitle" class="text-xl font-bold">Select Devices to Monitor</h3>
+                <button onclick="hideDeviceSelector()" class="text-gray-600 hover:text-gray-900" aria-label="Close device selector">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center gap-3">
+                    <input type="text" id="deviceSearch" placeholder="Search devices..." aria-label="Search devices"
+                           class="flex-1 px-4 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                           oninput="filterDevices()">
+                    <button onclick="selectAllDevices()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">
+                        Select All
+                    </button>
+                    <button onclick="deselectAllDevices()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">
+                        Deselect All
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 overflow-y-auto max-h-96" id="deviceList">
+                <!-- Device checkboxes will be inserted here -->
+            </div>
+
+            <div class="flex items-center justify-between p-4 border-t border-gray-200">
+                <span class="text-gray-600"><span id="selectedCount">0</span> devices selected</span>
+                <div class="flex gap-3">
+                    <button onclick="hideDeviceSelector()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Cancel</button>
+                    <button onclick="applyDeviceSelection()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Modal -->
+    <div id="fullscreenModal" class="fixed inset-0 bg-black hidden items-center justify-center z-50">
+        <div class="absolute top-4 right-4 flex items-center gap-3 z-10">
+            <span id="fullscreenTitle" class="text-white text-lg font-bold"></span>
+            <button onclick="openRemote()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                Remote Control
+            </button>
+            <button onclick="hideFullscreen()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg" aria-label="Close fullscreen">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <img id="fullscreenImage" src="" class="max-w-full max-h-full object-contain">
+    </div>
+
+    <script>
+        let devices = [];
+        let selectedDevices = [];
+        let deviceStatus = {};  // Cached status from background checker
+        let screenshots = {};
+        let refreshTimer = null;
+        let countdownTimer = null;
+        let nextRefreshTime = null;
+        let currentFullscreenIp = null;
+        let screenshotWs = null;
+        let mainWs = null;  // Main WebSocket for status updates
+        let isRefreshing = false;
+        let isFullRefresh = false;  // Track if this is a full refresh or lazy load
+        let visibleDevices = new Set();  // Track visible devices for lazy loading
+        let screenshotObserver = null;  // IntersectionObserver for lazy loading
+        let lazyLoadTimer = null;  // Debounce timer for batch lazy loading
+        let pendingLazyLoad = new Set();  // IPs pending lazy load
+        let isFullscreenMode = false;
+        let overlayTimeoutTimer = null;  // Safety timeout to hide stuck overlays
+        let deviceOverlayTimers = {};  // Per-device overlay timeout timers
+
+        const SELECTED_DEVICES_KEY = 'multiview_selected_devices';
+        const SELECTED_PROJECT_KEY = 'multiview_selected_project';
+        const FULLSCREEN_MODE_KEY = 'multiview_fullscreen_mode';
+        const LAZY_LOAD_DELAY = 300;  // ms to wait before batch loading
+        const OVERLAY_SAFETY_TIMEOUT = 30000;  // 30s safety timeout for stuck overlays
+        const DEVICE_OVERLAY_TIMEOUT = 15000;  // 15s per-device overlay timeout
+
+        // ============================================
+        // WebSocket for real-time status updates
+        // ============================================
+        function connectMainWebSocket() {
+            if (mainWs && mainWs.readyState === WebSocket.OPEN) return;
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            mainWs = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            mainWs.onopen = () => {
+                console.log('[WS Main] Connected - listening for status updates');
+            };
+
+            mainWs.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'connection_status') {
+                        handleConnectionStatusUpdate(data);
+                    }
+                } catch (e) {
+                    // Ignore non-JSON messages
+                }
+            };
+
+            mainWs.onclose = () => {
+                console.log('[WS Main] Disconnected');
+                if (!document.hidden) {
+                    console.log('[WS Main] Reconnecting in 5s...');
+                    setTimeout(connectMainWebSocket, 5000);
+                }
+            };
+        }
+
+        // Handle real-time connection status updates from background checker
+        function handleConnectionStatusUpdate(data) {
+            console.log('[Status Update] Received from background checker');
+
+            // Update cached status
+            for (const [ip, status] of Object.entries(data.devices)) {
+                deviceStatus[ip] = status.online ? 'online' : status.status;
+            }
+
+            // Update UI
+            updateStatusDisplay(data.summary.online, data.summary.offline);
+            updateAllStatusDots();
+
+            // Load screenshots for newly online visible devices
+            loadVisibleOnlineScreenshots();
+        }
+
+        // ============================================
+        // WebSocket for screenshot streaming
+        // ============================================
+
+        // Close existing screenshot WebSocket cleanly (suppress onclose cleanup)
+        function closeScreenshotWebSocket() {
+            if (screenshotWs) {
+                // Replace onclose to prevent it from hiding overlays during intentional close
+                screenshotWs.onclose = () => {
+                    console.log('[WS Screenshots] Intentionally closed');
+                };
+                screenshotWs.close();
+                screenshotWs = null;
+            }
+        }
+
+        function connectScreenshotWebSocket(forceNew = false) {
+            if (!forceNew && screenshotWs && screenshotWs.readyState === WebSocket.OPEN) {
+                return Promise.resolve(screenshotWs);
+            }
+
+            // Close existing connection if forcing new
+            if (forceNew) {
+                closeScreenshotWebSocket();
+            }
+
+            return new Promise((resolve, reject) => {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                screenshotWs = new WebSocket(`${protocol}//${window.location.host}/ws/multiview/screenshots`);
+
+                screenshotWs.onopen = () => {
+                    console.log('[WS Screenshots] Connected');
+                    resolve(screenshotWs);
+                };
+
+                screenshotWs.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleScreenshotMessage(data);
+                };
+
+                screenshotWs.onerror = (error) => {
+                    console.error('[WS Screenshots] Error:', error);
+                    reject(error);
+                };
+
+                screenshotWs.onclose = () => {
+                    console.log('[WS Screenshots] Disconnected');
+                    screenshotWs = null;
+                    // Always hide overlays on close - prevents stuck spinners
+                    hideAllLoadingOverlays();
+                    if (isRefreshing || isFullRefresh) {
+                        console.warn('[WS Screenshots] Closed during refresh - resetting state');
+                        onRefreshComplete({ total: 0, success_count: 0 });
+                        isRefreshing = false;
+                        isFullRefresh = false;
+                    }
+                };
+            });
+        }
+
+        function handleScreenshotMessage(data) {
+            switch (data.type) {
+                case 'start':
+                    console.log(`[WS Screenshots] Starting: ${data.total} devices`);
+                    break;
+
+                case 'screenshot':
+                    updateDeviceScreenshot(data);
+                    break;
+
+                case 'progress':
+                    if (isFullRefresh) {
+                        updateProgress(data.completed, data.total);
+                    }
+                    break;
+
+                case 'done':
+                    if (isFullRefresh) {
+                        onRefreshComplete(data);
+                    } else {
+                        // Lazy load batch complete - hide any remaining loading overlays
+                        console.log(`[Lazy Load] Batch done: ${data.success_count}/${data.total}`);
+                        hideAllLoadingOverlays();
+                    }
+                    break;
+
+                case 'error':
+                    console.error('[WS Screenshots] Error:', data.message);
+                    hideAllLoadingOverlays();
+                    break;
+            }
+        }
+
+        // Helper: show loading overlay for a device with auto-hide timeout
+        // If device already has a screenshot, show small refresh indicator instead of full overlay
+        function showDeviceOverlay(ip) {
+            const safeIp = ip.replace(/\./g, '-');
+            const loading = document.getElementById(`loading-${safeIp}`);
+            const refreshing = document.getElementById(`refreshing-${safeIp}`);
+            const hasExisting = !!screenshots[ip];
+
+            if (hasExisting) {
+                // Has cached screenshot: show small refresh indicator (top-right spinner)
+                if (loading) loading.classList.add('hidden');
+                if (refreshing) refreshing.classList.remove('hidden');
+            } else {
+                // No screenshot yet: show full loading overlay
+                if (loading) loading.classList.remove('hidden');
+                if (refreshing) refreshing.classList.add('hidden');
+            }
+
+            // Clear existing per-device timer
+            if (deviceOverlayTimers[ip]) clearTimeout(deviceOverlayTimers[ip]);
+
+            // Auto-hide after DEVICE_OVERLAY_TIMEOUT
+            deviceOverlayTimers[ip] = setTimeout(() => {
+                if (loading && !loading.classList.contains('hidden')) {
+                    console.warn(`[Overlay] Auto-hiding stuck overlay for ${ip}`);
+                    loading.classList.add('hidden');
+                }
+                if (refreshing && !refreshing.classList.contains('hidden')) {
+                    refreshing.classList.add('hidden');
+                }
+                delete deviceOverlayTimers[ip];
+            }, DEVICE_OVERLAY_TIMEOUT);
+        }
+
+        // Helper: hide loading overlay and refresh indicator for a device
+        function hideDeviceOverlay(ip) {
+            const safeIp = ip.replace(/\./g, '-');
+            const loading = document.getElementById(`loading-${safeIp}`);
+            const refreshing = document.getElementById(`refreshing-${safeIp}`);
+            if (loading) loading.classList.add('hidden');
+            if (refreshing) refreshing.classList.add('hidden');
+            if (deviceOverlayTimers[ip]) {
+                clearTimeout(deviceOverlayTimers[ip]);
+                delete deviceOverlayTimers[ip];
+            }
+        }
+
+        // Helper: hide all loading overlays and refresh indicators
+        function hideAllLoadingOverlays() {
+            document.querySelectorAll('.loading-overlay').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.refresh-indicator').forEach(el => el.classList.add('hidden'));
+            // Clear all timers
+            if (overlayTimeoutTimer) {
+                clearTimeout(overlayTimeoutTimer);
+                overlayTimeoutTimer = null;
+            }
+            Object.keys(deviceOverlayTimers).forEach(ip => {
+                clearTimeout(deviceOverlayTimers[ip]);
+            });
+            deviceOverlayTimers = {};
+        }
+
+        // Start safety timeout - auto-hide overlays if stuck too long
+        function startOverlaySafetyTimeout() {
+            if (overlayTimeoutTimer) clearTimeout(overlayTimeoutTimer);
+            overlayTimeoutTimer = setTimeout(() => {
+                const visibleOverlays = document.querySelectorAll('.loading-overlay:not(.hidden)');
+                if (visibleOverlays.length > 0) {
+                    console.warn(`[Safety] Hiding ${visibleOverlays.length} stuck loading overlays after timeout`);
+                    hideAllLoadingOverlays();
+                    if (isRefreshing) {
+                        isRefreshing = false;
+                        isFullRefresh = false;
+                        const btn = document.getElementById('refreshBtn');
+                        btn.innerHTML = `
+                            <svg class="w-5 h-5" id="refreshIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Refresh All
+                        `;
+                        btn.disabled = false;
+                        scheduleNextRefresh();
+                    }
+                }
+            }, OVERLAY_SAFETY_TIMEOUT);
+        }
+
+        // ============================================
+        // Lazy Loading with IntersectionObserver (Batch)
+        // ============================================
+        function setupLazyLoading() {
+            if (screenshotObserver) {
+                screenshotObserver.disconnect();
+            }
+
+            screenshotObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const ip = entry.target.dataset.ip;
+                    if (entry.isIntersecting) {
+                        visibleDevices.add(ip);
+                        // Queue for batch loading if online and not loaded yet
+                        if (deviceStatus[ip] === 'online' && !screenshots[ip]) {
+                            pendingLazyLoad.add(ip);
+                        }
+                    } else {
+                        visibleDevices.delete(ip);
+                        pendingLazyLoad.delete(ip);
+                    }
+                });
+
+                // Debounce: batch load after delay
+                if (pendingLazyLoad.size > 0) {
+                    scheduleBatchLazyLoad();
+                }
+            }, {
+                rootMargin: '100px', // Preload 100px before visible
+                threshold: 0.1
+            });
+
+            // Observe all TV cards
+            document.querySelectorAll('.tv-card').forEach(card => {
+                if (card.dataset.ip) {
+                    screenshotObserver.observe(card);
+                }
+            });
+        }
+
+        // Schedule batch lazy load (debounced)
+        function scheduleBatchLazyLoad() {
+            if (lazyLoadTimer) clearTimeout(lazyLoadTimer);
+
+            lazyLoadTimer = setTimeout(() => {
+                if (pendingLazyLoad.size > 0 && !isRefreshing) {
+                    const ips = Array.from(pendingLazyLoad);
+                    pendingLazyLoad.clear();
+                    console.log(`[Lazy Load] Batch loading ${ips.length} devices`);
+                    batchLoadScreenshots(ips);
+                }
+            }, LAZY_LOAD_DELAY);
+        }
+
+        // Batch load screenshots via WebSocket
+        async function batchLoadScreenshots(ips, fullRefresh = false) {
+            if (ips.length === 0) return;
+
+            if (!fullRefresh) {
+                isFullRefresh = false;  // Not a full refresh, just lazy load batch
+            }
+
+            // Show loading for these IPs (with per-device auto-hide timeout)
+            ips.forEach(ip => showDeviceOverlay(ip));
+
+            // Safety timeout for lazy load batches
+            startOverlaySafetyTimeout();
+
+            try {
+                await connectScreenshotWebSocket();
+                screenshotWs.send(JSON.stringify({ ips }));
+            } catch (e) {
+                console.error('Batch load failed:', e);
+                // Hide all loading overlays on WebSocket failure
+                hideAllLoadingOverlays();
+                // Fallback: load one by one (limited to 4 concurrent)
+                for (let i = 0; i < ips.length; i += 4) {
+                    const batch = ips.slice(i, i + 4);
+                    await Promise.all(batch.map(ip => captureScreenshot(ip)));
+                }
+            }
+        }
+
+        // Load screenshots for visible online devices (called on status update)
+        function loadVisibleOnlineScreenshots() {
+            visibleDevices.forEach(ip => {
+                if (deviceStatus[ip] === 'online' && !screenshots[ip]) {
+                    pendingLazyLoad.add(ip);
+                }
+            });
+
+            if (pendingLazyLoad.size > 0) {
+                scheduleBatchLazyLoad();
+            }
+        }
+
+        function updateDeviceScreenshot(data) {
+            const safeIp = data.ip.replace(/\./g, '-');
+            const img = document.getElementById(`screen-${safeIp}`);
+            const placeholder = document.getElementById(`placeholder-${safeIp}`);
+
+            hideDeviceOverlay(data.ip);
+
+            if (data.success && data.screenshot) {
+                screenshots[data.ip] = data.screenshot;
+                if (img) {
+                    img.src = `data:image/png;base64,${data.screenshot}`;
+                    img.classList.remove('hidden');
+                }
+                if (placeholder) placeholder.classList.add('hidden');
+
+                // Update fullscreen if viewing this IP
+                if (currentFullscreenIp === data.ip) {
+                    document.getElementById('fullscreenImage').src = img.src;
+                }
+            }
+        }
+
+        function updateProgress(completed, total) {
+            const btn = document.getElementById('refreshBtn');
+            btn.innerHTML = `
+                <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                ${completed}/${total}
+            `;
+        }
+
+        function onRefreshComplete(data) {
+            const btn = document.getElementById('refreshBtn');
+
+            btn.innerHTML = `
+                <svg class="w-5 h-5" id="refreshIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Refresh All
+            `;
+            btn.disabled = false;
+            isRefreshing = false;
+            isFullRefresh = false;
+
+            // Hide ALL loading overlays (some devices may not have returned a screenshot)
+            hideAllLoadingOverlays();
+
+            const timeStr = new Date().toLocaleTimeString();
+            document.getElementById('lastRefresh').textContent = timeStr;
+            if (isFullscreenMode) {
+                document.getElementById('fsLastRefresh').textContent = timeStr;
+            }
+            console.log(`[Refresh] Done: ${data.success_count}/${data.total} successful`);
+
+            // Schedule next refresh
+            scheduleNextRefresh();
+        }
+
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/auth/me');
+                if (response.ok) {
+                    const user = await response.json();
+                    document.getElementById('userName').textContent = user.username;
+                    document.getElementById('userRole').textContent = user.role;
+                    document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (e) {
+                console.error('Auth check error:', e);
+            }
+        }
+
+        // Load devices from API
+        async function loadDevices() {
+            try {
+                // Load devices and cached status in parallel (FAST!)
+                const [devicesRes, statusRes] = await Promise.all([
+                    fetch('/api/devices'),
+                    fetch('/api/dashboard/status')  // Cached status - instant!
+                ]);
+
+                const devicesData = await devicesRes.json();
+                const statusData = await statusRes.json();
+
+                devices = devicesData.devices || [];
+
+                // Check if cache has data
+                const cacheHasData = Object.keys(statusData.devices || {}).length > 0;
+
+                // Apply cached status (no ping needed!)
+                for (const [ip, status] of Object.entries(statusData.devices || {})) {
+                    deviceStatus[ip] = status.online ? 'online' : status.status;
+                }
+
+                // Update status counts
+                updateStatusDisplay(statusData.online || 0, statusData.offline || 0);
+
+                // Populate project filter dropdown
+                populateProjectFilter();
+
+                // Check if a project filter is active
+                const savedProject = localStorage.getItem(SELECTED_PROJECT_KEY) || '';
+                if (savedProject) {
+                    // Auto-select devices by project (don't overwrite manual selection)
+                    selectedDevices = devices.filter(d => (d.Project || '').trim() === savedProject);
+                } else {
+                    // No project filter - load saved manual selection
+                    loadSavedSelection();
+                    // If no saved selection, select all
+                    if (selectedDevices.length === 0) {
+                        selectedDevices = [...devices];
+                        saveSelection();
+                    }
+                }
+
+                // Render device list in modal
+                renderDeviceList();
+
+                // If no selection, show empty state
+                if (selectedDevices.length === 0) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                    document.getElementById('tvGrid').classList.add('hidden');
+                } else {
+                    document.getElementById('emptyState').classList.add('hidden');
+                    document.getElementById('tvGrid').classList.remove('hidden');
+
+                    renderTVGrid();
+                    setupLazyLoading();
+
+                    if (!cacheHasData) {
+                        // Cache empty (first load) - assume all selected are online, load immediately
+                        console.log('[Init] Cache empty, loading all selected devices...');
+                        selectedDevices.forEach(d => deviceStatus[d.IP] = 'online');
+                        updateAllStatusDots();
+                        // Directly load screenshots for all selected (like old behavior)
+                        const ips = selectedDevices.map(d => d.IP);
+                        if (ips.length > 0) {
+                            isFullRefresh = true;  // Show progress for initial load
+                            isRefreshing = true;
+                            const btn = document.getElementById('refreshBtn');
+                            btn.disabled = true;
+                            btn.innerHTML = `
+                                <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                0/${ips.length}
+                            `;
+                            batchLoadScreenshots(ips, true);
+                        }
+                    }
+
+                    document.getElementById('lastRefresh').textContent = new Date().toLocaleTimeString();
+                    scheduleNextRefresh();
+                }
+            } catch (e) {
+                console.error('Load devices error:', e);
+            }
+        }
+
+        // Update status display
+        function updateStatusDisplay(online, offline) {
+            document.getElementById('onlineCount').textContent = online;
+            document.getElementById('offlineCount').textContent = offline;
+            // Also update fullscreen header
+            if (isFullscreenMode) {
+                document.getElementById('fsOnlineCount').textContent = online;
+                document.getElementById('fsOfflineCount').textContent = offline;
+            }
+        }
+
+        // Update all status dots in the grid
+        function updateAllStatusDots() {
+            selectedDevices.forEach(d => {
+                const safeIp = d.IP.replace(/\./g, '-');
+                const statusDot = document.getElementById(`status-${safeIp}`);
+                const tvCard = document.getElementById(`tv-${safeIp}`);
+                const isOnline = deviceStatus[d.IP] === 'online';
+
+                if (statusDot) {
+                    statusDot.classList.toggle('online', isOnline);
+                    statusDot.classList.toggle('offline', !isOnline);
+                }
+                if (tvCard) {
+                    tvCard.classList.toggle('offline', !isOnline);
+                }
+                // Hide loading overlay for offline devices (they won't get a screenshot)
+                if (!isOnline) {
+                    hideDeviceOverlay(d.IP);
+                }
+            });
+        }
+
+        // Load saved device selection
+        function loadSavedSelection() {
+            try {
+                const saved = localStorage.getItem(SELECTED_DEVICES_KEY);
+                if (saved) {
+                    const savedIps = JSON.parse(saved);
+                    // Filter to only include IPs that still exist
+                    selectedDevices = devices.filter(d => savedIps.includes(d.IP));
+                }
+            } catch (e) {
+                console.error('Error loading saved selection:', e);
+            }
+        }
+
+        // Save device selection
+        function saveSelection() {
+            try {
+                const ips = selectedDevices.map(d => d.IP);
+                localStorage.setItem(SELECTED_DEVICES_KEY, JSON.stringify(ips));
+            } catch (e) {
+                console.error('Error saving selection:', e);
+            }
+        }
+
+        // ============================================
+        // Project Filter
+        // ============================================
+        function populateProjectFilter() {
+            const projects = [...new Set(devices.map(d => (d.Project || '').trim()).filter(p => p))].sort();
+            const options = '<option value="">All Projects</option>' +
+                projects.map(p => `<option value="${p}">${p}</option>`).join('');
+
+            document.getElementById('projectFilter').innerHTML = options;
+            document.getElementById('fsProjectFilter').innerHTML = options;
+
+            // Restore saved project
+            const saved = localStorage.getItem(SELECTED_PROJECT_KEY) || '';
+            if (saved && projects.includes(saved)) {
+                document.getElementById('projectFilter').value = saved;
+                document.getElementById('fsProjectFilter').value = saved;
+            }
+        }
+
+        function filterByProject() {
+            const project = document.getElementById('projectFilter').value;
+            document.getElementById('fsProjectFilter').value = project;
+            applyProjectFilter(project);
+        }
+
+        function filterByProjectFromFS() {
+            const project = document.getElementById('fsProjectFilter').value;
+            document.getElementById('projectFilter').value = project;
+            applyProjectFilter(project);
+        }
+
+        function applyProjectFilter(project) {
+            localStorage.setItem(SELECTED_PROJECT_KEY, project);
+
+            // Select devices matching the project
+            if (project) {
+                selectedDevices = devices.filter(d => (d.Project || '').trim() === project);
+                // Don't overwrite manual selection - project filter is temporary
+            } else {
+                // All Projects - restore manual selection or select all
+                const saved = localStorage.getItem(SELECTED_DEVICES_KEY);
+                if (saved) {
+                    const savedIps = JSON.parse(saved);
+                    const restored = devices.filter(d => savedIps.includes(d.IP));
+                    // If saved selection is too small (likely from previous project filter), select all
+                    selectedDevices = restored.length > 0 ? restored : [...devices];
+                } else {
+                    selectedDevices = [...devices];
+                }
+            }
+
+            // Update UI
+            if (selectedDevices.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                document.getElementById('tvGrid').classList.add('hidden');
+                if (screenshotObserver) screenshotObserver.disconnect();
+            } else {
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('tvGrid').classList.remove('hidden');
+                renderTVGrid();
+                setupLazyLoading();
+                document.getElementById('lastRefresh').textContent = new Date().toLocaleTimeString();
+                scheduleNextRefresh();
+            }
+
+            // Update modal checkboxes if open
+            renderDeviceList();
+        }
+
+        // Render device list in modal
+        function renderDeviceList() {
+            const container = document.getElementById('deviceList');
+            const selectedIps = selectedDevices.map(d => d.IP);
+            const currentProject = document.getElementById('projectFilter').value;
+
+            // Filter devices by project if selected
+            const filteredDevices = currentProject
+                ? devices.filter(d => (d.Project || '').trim() === currentProject)
+                : devices;
+
+            container.innerHTML = filteredDevices.map(d => {
+                const project = (d.Project || '').trim();
+                const projectBadge = project
+                    ? `<span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-600">${project}</span>`
+                    : '';
+                return `
+                <label class="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer device-item" data-name="${d['Asset Name'] || ''}" data-ip="${d.IP}" data-project="${project}">
+                    <input type="checkbox" class="device-checkbox w-5 h-5 rounded bg-gray-200 border-gray-300 text-green-600 focus:ring-green-500"
+                           data-ip="${d.IP}" ${selectedIps.includes(d.IP) ? 'checked' : ''} onchange="updateSelectedCount()">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <p class="font-medium">${d['Asset Name'] || d.IP}</p>
+                            ${projectBadge}
+                        </div>
+                        <p class="text-sm text-gray-600">${d.IP} - ${d['Default Location'] || 'No location'}</p>
+                    </div>
+                    <div class="status-dot ${deviceStatus[d.IP] === 'online' ? 'online' : 'offline'}"></div>
+                </label>`;
+            }).join('');
+
+            updateSelectedCount();
+        }
+
+        // Filter devices in modal (search text)
+        function filterDevices() {
+            const search = document.getElementById('deviceSearch').value.toLowerCase();
+            document.querySelectorAll('.device-item').forEach(item => {
+                const name = item.dataset.name.toLowerCase();
+                const ip = item.dataset.ip.toLowerCase();
+                const project = (item.dataset.project || '').toLowerCase();
+                item.style.display = (name.includes(search) || ip.includes(search) || project.includes(search)) ? '' : 'none';
+            });
+        }
+
+        // Update selected count
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('.device-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+        }
+
+        // Select/Deselect all
+        function selectAllDevices() {
+            document.querySelectorAll('.device-checkbox').forEach(cb => cb.checked = true);
+            updateSelectedCount();
+        }
+
+        function deselectAllDevices() {
+            document.querySelectorAll('.device-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        }
+
+        // Apply selection
+        function applyDeviceSelection() {
+            const selectedIps = [];
+            document.querySelectorAll('.device-checkbox:checked').forEach(cb => {
+                selectedIps.push(cb.dataset.ip);
+            });
+
+            selectedDevices = devices.filter(d => selectedIps.includes(d.IP));
+            saveSelection();
+
+            hideDeviceSelector();
+
+            if (selectedDevices.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                document.getElementById('tvGrid').classList.add('hidden');
+                if (screenshotObserver) screenshotObserver.disconnect();
+            } else {
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('tvGrid').classList.remove('hidden');
+                renderTVGrid();
+                // Setup lazy loading - screenshots load as cards become visible
+                setupLazyLoading();
+                document.getElementById('lastRefresh').textContent = new Date().toLocaleTimeString();
+                scheduleNextRefresh();
+            }
+        }
+
+        // Show/hide device selector modal
+        function showDeviceSelector() {
+            renderDeviceList();
+            document.getElementById('deviceModal').classList.remove('hidden');
+            document.getElementById('deviceModal').classList.add('flex');
+        }
+
+        function hideDeviceSelector() {
+            document.getElementById('deviceModal').classList.add('hidden');
+            document.getElementById('deviceModal').classList.remove('flex');
+        }
+
+        // Render TV grid
+        function renderTVGrid() {
+            const grid = document.getElementById('tvGrid');
+            document.getElementById('viewingCount').textContent = selectedDevices.length;
+            if (isFullscreenMode) {
+                document.getElementById('fsViewingCount').textContent = selectedDevices.length;
+            }
+
+            // Count online/offline from cached status
+            let online = 0, offline = 0;
+            selectedDevices.forEach(d => {
+                if (deviceStatus[d.IP] === 'online') online++;
+                else offline++;
+            });
+            updateStatusDisplay(online, offline);
+
+            grid.innerHTML = selectedDevices.map(d => {
+                const safeIp = d.IP.replace(/\./g, '-');
+                const isOnline = deviceStatus[d.IP] === 'online';
+                const hasScreenshot = screenshots[d.IP];
+
+                return `
+                <div class="tv-card rounded-xl overflow-hidden ${!isOnline ? 'offline' : ''}"
+                     id="tv-${safeIp}" data-ip="${d.IP}">
+                    <div class="tv-screen cursor-pointer" onclick="showFullscreen('${d.IP}', '${d['Asset Name'] || d.IP}')">
+                        <div class="placeholder ${hasScreenshot ? 'hidden' : ''}" id="placeholder-${safeIp}">
+                            ${!isOnline ? `
+                                <div class="text-center">
+                                    <svg class="w-10 h-10 mx-auto mb-1 text-red-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m-2.829-2.829a5 5 0 000-7.07m-4.243 4.243a1 1 0 01-1.414 0m7.071-7.071a9 9 0 00-12.728 0m2.829 2.829a5 5 0 017.07 0"/>
+                                    </svg>
+                                    <span class="text-xs text-gray-500">Offline</span>
+                                </div>
+                            ` : `
+                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                            `}
+                        </div>
+                        <img id="screen-${safeIp}" src="${hasScreenshot ? `data:image/png;base64,${screenshots[d.IP]}` : ''}"
+                             class="${hasScreenshot ? '' : 'hidden'}" alt="${d['Asset Name'] || d.IP}">
+                        <div class="loading-overlay hidden" id="loading-${safeIp}">
+                            <svg class="w-8 h-8 animate-spin text-green-600" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        <div class="refresh-indicator hidden" id="refreshing-${safeIp}">
+                            <svg class="w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="p-3 flex items-center justify-between">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="status-dot ${isOnline ? 'online' : 'offline'}" id="status-${safeIp}"></div>
+                            <div class="min-w-0">
+                                <p class="font-medium truncate">${d['Asset Name'] || 'Unknown'}</p>
+                                <p class="text-xs text-gray-600 truncate">${d.IP}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="event.stopPropagation(); captureScreenshot('${d.IP}')" class="p-1.5 hover:bg-gray-200 rounded" title="Capture" aria-label="Capture screenshot">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                            </button>
+                            <button onclick="event.stopPropagation(); startScrcpy('${d.IP}', '${(d['Asset Name'] || d.IP).replace(/'/g, "\\'")}')" class="p-1.5 hover:bg-gray-200 rounded" title="Remote (Scrcpy)" aria-label="Launch scrcpy remote">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // Capture single screenshot
+        async function captureScreenshot(ip) {
+            const safeIp = ip.replace(/\./g, '-');
+            const img = document.getElementById(`screen-${safeIp}`);
+            const placeholder = document.getElementById(`placeholder-${safeIp}`);
+
+            showDeviceOverlay(ip);
+
+            try {
+                // Use direct screenshot endpoint (faster, no file I/O)
+                const response = await fetch(`/api/screenshot/${ip}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success && data.screenshot) {
+                    screenshots[ip] = data.screenshot;
+                    img.src = `data:image/png;base64,${data.screenshot}`;
+                    img.classList.remove('hidden');
+                    if (placeholder) placeholder.classList.add('hidden');
+
+                    // Update fullscreen if viewing this IP
+                    if (currentFullscreenIp === ip) {
+                        document.getElementById('fullscreenImage').src = img.src;
+                    }
+                } else {
+                    console.error(`Screenshot failed for ${ip}:`, data.message);
+                }
+            } catch (e) {
+                console.error(`Screenshot error for ${ip}:`, e);
+            } finally {
+                hideDeviceOverlay(ip);
+            }
+        }
+
+        // Refresh all screenshots using WebSocket streaming
+        async function refreshAllScreenshots() {
+            if (isRefreshing) return;
+            isRefreshing = true;
+            isFullRefresh = true;
+
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+
+            // First, refresh cached status (fast API call)
+            btn.innerHTML = `
+                <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Checking...
+            `;
+
+            // Trigger a quick status refresh (uses cached + fast port check)
+            try {
+                const statusRes = await fetch('/api/dashboard/status');
+                const statusData = await statusRes.json();
+
+                // Update cached status
+                for (const [ip, status] of Object.entries(statusData.devices || {})) {
+                    deviceStatus[ip] = status.online ? 'online' : status.status;
+                }
+
+                // Update UI immediately
+                updateAllStatusDots();
+                updateStatusDisplay(statusData.online || 0, statusData.offline || 0);
+            } catch (e) {
+                console.error('Status refresh failed:', e);
+            }
+
+            // Get online devices (only load screenshots for online ones)
+            const onlineDevices = selectedDevices.filter(d => deviceStatus[d.IP] === 'online');
+            const ips = onlineDevices.map(d => d.IP);
+
+            if (ips.length === 0) {
+                onRefreshComplete({ total: 0, success_count: 0 });
+                return;
+            }
+
+            // Show loading overlay for all online devices (with per-device auto-hide timeout)
+            ips.forEach(ip => showDeviceOverlay(ip));
+
+            // Safety timeout: auto-hide overlays if stuck
+            startOverlaySafetyTimeout();
+
+            btn.innerHTML = `
+                <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                0/${ips.length}
+            `;
+
+            try {
+                // Force new WebSocket to avoid mixing responses with pending lazy load
+                await connectScreenshotWebSocket(true);
+                screenshotWs.send(JSON.stringify({ ips }));
+            } catch (e) {
+                console.error('WebSocket connection failed, falling back to HTTP:', e);
+                // Fallback to old HTTP method
+                await refreshAllScreenshotsFallback(ips);
+            }
+        }
+
+        // Fallback HTTP method (in case WebSocket fails)
+        async function refreshAllScreenshotsFallback(ips) {
+            let completed = 0;
+            for (let i = 0; i < ips.length; i += 4) {
+                const batch = ips.slice(i, i + 4);
+                await Promise.all(batch.map(async ip => {
+                    await captureScreenshot(ip);
+                    completed++;
+                    updateProgress(completed, ips.length);
+                }));
+            }
+            onRefreshComplete({ total: ips.length, success_count: completed });
+        }
+
+        // Schedule next refresh
+        function scheduleNextRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            if (countdownTimer) clearInterval(countdownTimer);
+
+            const interval = parseInt(document.getElementById('refreshInterval').value);
+            if (interval === 0) {
+                document.getElementById('nextRefresh').textContent = '';
+                return;
+            }
+
+            nextRefreshTime = Date.now() + interval * 1000;
+
+            countdownTimer = setInterval(() => {
+                const remaining = Math.max(0, Math.round((nextRefreshTime - Date.now()) / 1000));
+                document.getElementById('nextRefresh').textContent = `(next in ${remaining}s)`;
+            }, 1000);
+
+            refreshTimer = setTimeout(() => {
+                refreshAllScreenshots();
+            }, interval * 1000);
+        }
+
+        // Change grid size
+        function changeGridSize() {
+            const size = document.getElementById('gridSize').value;
+            const grid = document.getElementById('tvGrid');
+            grid.className = `grid grid-${size} gap-4`;
+        }
+
+        // Change refresh interval
+        function changeRefreshInterval() {
+            scheduleNextRefresh();
+        }
+
+        // Fullscreen view
+        function showFullscreen(ip, name) {
+            currentFullscreenIp = ip;
+            document.getElementById('fullscreenTitle').textContent = `${name} (${ip})`;
+
+            const img = document.getElementById(`screen-${ip.replace(/\./g, '-')}`);
+            if (img && img.src) {
+                document.getElementById('fullscreenImage').src = img.src;
+            }
+
+            document.getElementById('fullscreenModal').classList.remove('hidden');
+            document.getElementById('fullscreenModal').classList.add('flex');
+        }
+
+        function hideFullscreen() {
+            currentFullscreenIp = null;
+            document.getElementById('fullscreenModal').classList.add('hidden');
+            document.getElementById('fullscreenModal').classList.remove('flex');
+        }
+
+        function openRemote() {
+            if (currentFullscreenIp) {
+                window.open(`/remote/${currentFullscreenIp}`, '_blank');
+            }
+        }
+
+        // Logout
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        // ============================================
+        // Fullscreen Mode
+        // ============================================
+        function toggleFullscreen() {
+            isFullscreenMode = !isFullscreenMode;
+            const container = document.querySelector('.flex');
+
+            if (isFullscreenMode) {
+                container.classList.add('fullscreen-mode');
+                // Try to enter browser fullscreen
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(e => {
+                        console.log('Browser fullscreen not available');
+                    });
+                }
+                // Sync selects
+                document.getElementById('fsGridSize').value = document.getElementById('gridSize').value;
+                document.getElementById('fsRefreshInterval').value = document.getElementById('refreshInterval').value;
+                // Update fullscreen header stats
+                updateFullscreenStats();
+            } else {
+                container.classList.remove('fullscreen-mode');
+                // Exit browser fullscreen
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(e => {});
+                }
+            }
+
+            // Save preference
+            localStorage.setItem(FULLSCREEN_MODE_KEY, isFullscreenMode);
+        }
+
+        function updateFullscreenStats() {
+            document.getElementById('fsViewingCount').textContent = document.getElementById('viewingCount').textContent;
+            document.getElementById('fsOnlineCount').textContent = document.getElementById('onlineCount').textContent;
+            document.getElementById('fsOfflineCount').textContent = document.getElementById('offlineCount').textContent;
+            document.getElementById('fsLastRefresh').textContent = document.getElementById('lastRefresh').textContent;
+        }
+
+        function changeGridSizeFromFS() {
+            const size = document.getElementById('fsGridSize').value;
+            document.getElementById('gridSize').value = size;
+            changeGridSize();
+        }
+
+        function changeRefreshIntervalFromFS() {
+            const interval = document.getElementById('fsRefreshInterval').value;
+            document.getElementById('refreshInterval').value = interval;
+            changeRefreshInterval();
+        }
+
+        // Handle browser fullscreen change (e.g., user presses F11 or Esc)
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && isFullscreenMode) {
+                // User exited fullscreen via browser, sync our state
+                isFullscreenMode = false;
+                document.querySelector('.flex').classList.remove('fullscreen-mode');
+                localStorage.setItem(FULLSCREEN_MODE_KEY, false);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Don't handle shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'Escape') {
+                if (!document.getElementById('fullscreenModal').classList.contains('hidden')) {
+                    hideFullscreen();
+                } else if (!document.getElementById('deviceModal').classList.contains('hidden')) {
+                    hideDeviceSelector();
+                } else if (isFullscreenMode) {
+                    toggleFullscreen();
+                }
+            }
+            // 'F' for fullscreen toggle
+            if (e.key === 'f' || e.key === 'F') {
+                if (!document.getElementById('deviceModal').classList.contains('hidden')) return;
+                if (!document.getElementById('fullscreenModal').classList.contains('hidden')) return;
+                toggleFullscreen();
+            }
+            // 'R' for refresh
+            if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
+                if (!document.getElementById('deviceModal').classList.contains('hidden')) return;
+                if (!document.getElementById('fullscreenModal').classList.contains('hidden')) return;
+                refreshAllScreenshots();
+            }
+        });
+
+        // ============================================
+        // Client Agent Detection (native scrcpy on client PCs)
+        // ============================================
+        let clientAgentAvailable = false;
+        let clientAgentUrl = localStorage.getItem('scrcpyAgentUrl') || `http://${window.location.hostname}:18080`;
+
+        async function checkClientAgent() {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch(`${clientAgentUrl}/api/status`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('[ClientAgent] Status response:', data);
+                    clientAgentAvailable = data.scrcpy_exists && data.adb_exists;
+                    if (clientAgentAvailable) {
+                        console.log(`[ClientAgent] Detected at ${clientAgentUrl} - native scrcpy available`);
+                    } else {
+                        console.warn('[ClientAgent] Agent running but scrcpy/adb not found:', {
+                            scrcpy_exists: data.scrcpy_exists,
+                            adb_exists: data.adb_exists,
+                            install_dir: data.install_dir
+                        });
+                    }
+                } else {
+                    console.warn('[ClientAgent] Status check failed:', response.status);
+                    clientAgentAvailable = false;
+                }
+            } catch (e) {
+                console.log(`[ClientAgent] Not available at ${clientAgentUrl}:`, e.message || e);
+                clientAgentAvailable = false;
+            }
+        }
+
+        // Check client agent on page load
+        checkClientAgent();
+
+        // ============================================
+        // Scrcpy via Client Agent (native window only)
+        // ============================================
+        async function startScrcpy(ip, name) {
+            // Re-read agent URL in case user changed it on Scrcpy Agent page
+            clientAgentUrl = localStorage.getItem('scrcpyAgentUrl') || `http://${window.location.hostname}:18080`;
+
+            if (!clientAgentAvailable) {
+                alert('Scrcpy Agent is not connected.\nPlease set up the agent on the Scrcpy Agent page first.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${clientAgentUrl}/api/launch/${ip}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    console.log(`[Scrcpy] Native window opened for ${name || ip} via ${clientAgentUrl}`);
+                    alert(`Scrcpy window opened for ${name || ip}! Check the agent PC desktop.`);
+                } else {
+                    alert(`Scrcpy launch failed: ${data.message}`);
+                }
+            } catch (e) {
+                console.error('[Scrcpy] Agent unreachable:', e);
+                alert('Scrcpy Agent is unreachable.\nPlease check the agent connection on the Scrcpy Agent page.');
+            }
+        }
+
+        // Pause/resume when tab visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Tab hidden - pause all timers and WebSockets
+                if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
+                if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+                closeScreenshotWebSocket();
+                if (mainWs) { mainWs.close(); mainWs = null; }
+                hideAllLoadingOverlays();
+                console.log('[Visibility] Tab hidden - paused refresh & WebSockets');
+            } else {
+                // Tab visible - resume
+                connectMainWebSocket();
+                refreshAllScreenshots();
+                console.log('[Visibility] Tab visible - resumed refresh & WebSockets');
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            closeScreenshotWebSocket();
+            if (mainWs) mainWs.close();
+            if (screenshotObserver) screenshotObserver.disconnect();
+            if (lazyLoadTimer) clearTimeout(lazyLoadTimer);
+        });
+
+        // Initialize
+        loadUserInfo();
+        loadDevices();
+
+        // Connect to main WebSocket for real-time status updates
+        connectMainWebSocket();
+
+        // Pre-connect screenshot WebSocket
+        connectScreenshotWebSocket().catch(e => console.log('Initial WS connect failed, will retry on refresh'));
+
+        // Restore fullscreen mode if previously enabled
+        if (localStorage.getItem(FULLSCREEN_MODE_KEY) === 'true') {
+            setTimeout(() => {
+                isFullscreenMode = false; // Reset so toggle works
+                toggleFullscreen();
+            }, 100);
+        }
+    </script>
+</body>
+</html>
