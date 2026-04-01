@@ -71,8 +71,17 @@
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 min-h-screen flex">
+    <div class="mobile-topbar">
+        <button type="button" class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Open navigation menu" aria-controls="mainSidebar" aria-expanded="false">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+        <span class="mobile-topbar-title">Settings</span>
+    </div>
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()" aria-hidden="true"></div>
     <!-- Sidebar (same as dashboard) -->
-    <aside class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
+    <aside id="mainSidebar" class="sidebar w-64 min-h-screen p-4 fixed left-0 top-0">
         <div class="flex items-center gap-3 mb-8 p-2">
             <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,14 +193,14 @@
         <h2 class="text-2xl font-bold mb-6">Settings</h2>
 
         <!-- Tabs -->
-        <div class="flex gap-2 mb-6" id="tabBar">
-            <button onclick="showTab('profile')" class="tab-btn active px-4 py-2 rounded-lg" data-tab="profile">My Profile</button>
-            <button onclick="showTab('users')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="users">User Management</button>
-            <button onclick="showTab('plants')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="plants">Plants</button>
-            <button onclick="showTab('smtp')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="smtp">SMTP Server</button>
-            <button onclick="showTab('interchat')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="interchat">Interchat</button>
-            <button onclick="showTab('alerts')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="alerts">Alert Settings</button>
-            <button onclick="showTab('ntp')" class="tab-btn px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="ntp">NTP Sync</button>
+        <div class="flex gap-2 mb-6 overflow-x-auto whitespace-nowrap pb-2" id="tabBar">
+            <button onclick="showTab('profile')" class="tab-btn shrink-0 active px-4 py-2 rounded-lg" data-tab="profile">My Profile</button>
+            <button onclick="showTab('users')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="users">User Management</button>
+            <button onclick="showTab('plants')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="plants">Plants</button>
+            <button onclick="showTab('smtp')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="smtp">SMTP Server</button>
+            <button onclick="showTab('interchat')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="interchat">Interchat</button>
+            <button onclick="showTab('alerts')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="alerts">Alert Settings</button>
+            <button onclick="showTab('ntp')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="ntp">NTP Sync</button>
         </div>
 
         <!-- My Profile Tab -->
@@ -1209,5 +1218,6 @@
 
         init();
     </script>
+    <script src="/static/js/mobile-nav.js"></script>
 </body>
 </html>

@@ -140,9 +140,18 @@
 </head>
 <body class="min-h-screen">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:px-4 focus:py-2 focus:bg-green-600 focus:text-white">Skip to main content</a>
+    <div class="mobile-topbar">
+        <button type="button" class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Open navigation menu" aria-controls="mainSidebar" aria-expanded="false">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+        <span class="mobile-topbar-title">Multi-View</span>
+    </div>
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()" aria-hidden="true"></div>
     <div class="flex">
         <!-- Sidebar -->
-        <aside class="w-64 min-h-screen card border-r border-gray-200 p-4 fixed left-0 top-0" aria-label="Main navigation">
+        <aside id="mainSidebar" class="sidebar w-64 min-h-screen card border-r border-gray-200 p-4 fixed left-0 top-0" aria-label="Main navigation">
             <div class="flex items-center gap-3 mb-8">
                 <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -1663,5 +1672,6 @@
             }, 100);
         }
     </script>
+    <script src="/static/js/mobile-nav.js"></script>
 </body>
 </html>
