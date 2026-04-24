@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ':*)",
+      "Bash(ls /c/Python*/python.exe)",
+      "Read(//c/Users/**)",
+      "Bash(/c/Users/THE-NB128-2020/AppData/Local/Programs/Python/Python313/python.exe -c ':*)",
+      "Bash(grep -iE \"\\\\.exe$|\\\\.dll$|scrcpy-server\")",
+      "Bash(ls \"d:/LAB/TV_Data_collection/webapp/\"*.dockerignore \"d:/LAB/TV_Data_collection/\"*.dockerignore)",
+      "Bash(ls \"d:/LAB/TV_Data_collection/\"docker-compose*)",
+      "Bash(wc -l /d/LAB/TV_Data_collection/webapp/*.py)",
+      "Bash(python3 -c \"from routes.backup import router\")",
+      "Bash(python3 -m py_compile webapp/routes/app.py webapp/routes/backup.py webapp/routes/devices.py webapp/routes/settings.py webapp/database.py)"
+    ]
+  }
+}

@@ -107,35 +107,10 @@
                 <button onclick="setPreset(24)" class="preset-btn text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">24h</button>
                 <button onclick="setPreset(168)" class="preset-btn text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">7d</button>
                 <button onclick="setPreset(720)" class="preset-btn text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">30d</button>
-                <div class="relative">
-                    <button onclick="toggleDatePicker()" id="customRangeBtn" class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        Custom
-                    </button>
-                    <div id="datePickerPopup" class="hidden absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50" style="min-width:280px">
-                        <p class="text-sm font-medium mb-3">Custom Date Range</p>
-                        <div class="space-y-3">
-                            <div>
-                                <label class="text-xs text-gray-500">From</label>
-                                <div class="flex gap-2 mt-1">
-                                    <input type="date" id="startDate" class="text-sm px-2 py-1.5 bg-gray-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-green-500 flex-1">
-                                    <input type="time" id="startTime" value="00:00" class="text-sm px-2 py-1.5 bg-gray-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-green-500" style="width:100px">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-500">To</label>
-                                <div class="flex gap-2 mt-1">
-                                    <input type="date" id="endDate" class="text-sm px-2 py-1.5 bg-gray-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-green-500 flex-1">
-                                    <input type="time" id="endTime" value="23:59" class="text-sm px-2 py-1.5 bg-gray-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-green-500" style="width:100px">
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="loadCustomRange(); toggleDatePicker();" class="flex-1 text-sm px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">Apply</button>
-                                <button onclick="toggleDatePicker()" class="text-sm px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Cancel</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <button onclick="toggleDatePicker()" id="customRangeBtn" class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Custom
+                </button>
             </div>
         </div>
 
@@ -186,6 +161,38 @@
         </div>
     </main>
 
+    <!-- Custom Date Range Modal -->
+    <div id="datePickerPopup" class="hidden fixed inset-0 bg-black/30 flex items-center justify-center z-50" onclick="if(event.target===this)toggleDatePicker()">
+        <div class="bg-white rounded-xl shadow-lg p-5" style="width:320px">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Custom Date Range</h3>
+                <button onclick="toggleDatePicker()" class="text-gray-400 hover:text-gray-900">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">From</label>
+                    <div class="flex gap-2">
+                        <input type="date" id="startDate" class="px-2 py-1.5 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" style="width:140px">
+                        <input type="time" id="startTime" value="00:00" class="px-2 py-1.5 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" style="width:100px">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1">To</label>
+                    <div class="flex gap-2">
+                        <input type="date" id="endDate" class="px-2 py-1.5 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" style="width:140px">
+                        <input type="time" id="endTime" value="23:59" class="px-2 py-1.5 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" style="width:100px">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="loadCustomRange(); toggleDatePicker();" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm">Apply</button>
+                    <button onclick="toggleDatePicker()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -211,15 +218,6 @@
         function toggleDatePicker() {
             document.getElementById('datePickerPopup').classList.toggle('hidden');
         }
-
-        // Close popup when clicking outside
-        document.addEventListener('click', (e) => {
-            const popup = document.getElementById('datePickerPopup');
-            const btn = document.getElementById('customRangeBtn');
-            if (popup && !popup.contains(e.target) && !btn.contains(e.target)) {
-                popup.classList.add('hidden');
-            }
-        });
 
         function setPreset(hours) {
             currentMode = 'preset';
