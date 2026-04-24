@@ -63,9 +63,14 @@ function handleWebSocketMessage(data) {
             } else {
                 showToast(data.message, 'error');
             }
+            // Refresh deployment history after install completes
+            if (typeof loadDeploymentHistory === 'function') loadDeploymentHistory();
             break;
         case 'status':
             updateDeviceStatus(data.ip, data.status, data.details);
+            break;
+        case 'apk_progress':
+            if (typeof handleApkProgress === 'function') handleApkProgress(data);
             break;
     }
 }

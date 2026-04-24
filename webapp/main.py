@@ -34,6 +34,8 @@ from routes import (
     automation_router,
     documents_router,
     plants_router,
+    backup_router,
+    health_history_router,
 )
 
 # Print configuration on startup
@@ -157,6 +159,12 @@ app.include_router(documents_router)
 
 # Plant management routes (/api/plants/*)
 app.include_router(plants_router)
+
+# Backup & Restore routes (/api/backup/*)
+app.include_router(backup_router)
+
+# Health History routes (/api/health-history/*)
+app.include_router(health_history_router)
 
 
 # ============================================

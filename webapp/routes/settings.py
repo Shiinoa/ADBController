@@ -1,13 +1,16 @@
 """
 Settings API routes
 """
+import io
+import json
 import re
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from typing import Dict
 
 from alert_manager import alert_manager
 from auth import require_auth, require_admin_user
-from database import get_all_settings, get_setting, set_setting
+from database import get_all_settings, get_setting, set_setting, export_settings_json, import_settings_json
 from models import validate_ntp_server
 from ntp_service import ntp_service
 
@@ -24,6 +27,7 @@ BOOLEAN_SETTING_KEYS = {
     "smtp_auth_enabled",
     "ntp_sync_enabled",
     "interchat_skip_ssl_verification",
+    "auto_reconnect_enabled",
 }
 TIME_VALUE_RE = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 
@@ -180,3 +184,38 @@ async def sync_ntp_now(request: Request):
     if not result.get("success"):
         raise HTTPException(status_code=502, detail=result.get("message", "NTP sync failed"))
     return result
+
+
+@router.get("/export")
+async def export_settings(request: Request):
+    """Download all settings as a JSON file."""
+    require_admin_user(request)
+    data = export_settings_json()
+    content = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=settings_export.json"},
+    )
+
+
+@router.post("/import")
+async def import_settings(request: Request, file: UploadFile = File(...)):
+    """Import settings from a JSON file."""
+    require_admin_user(request)
+
+    if not file.filename.endswith(".json"):
+        raise HTTPException(status_code=400, detail="File must be a .json file")
+
+    try:
+        raw = await file.read()
+        data = json.loads(raw.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        raise HTTPException(status_code=400, detail="Invalid JSON file")
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="JSON must be a key-value object")
+
+    count = import_settings_json(data)
+    alert_manager.reload_settings()
+    return {"success": True, "message": f"Imported {count} settings"}

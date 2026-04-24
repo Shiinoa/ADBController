@@ -4,6 +4,7 @@ Periodically checks device connectivity and caches results for fast dashboard/mu
 Also checks app cache for online devices
 """
 import asyncio
+import json
 import socket
 import time
 import logging
@@ -14,7 +15,7 @@ from dataclasses import dataclass, field
 from adb_manager import adb_manager
 from websocket_manager import ws_manager
 from config import DEFAULT_APP_PACKAGE, CACHE_ALERT_THRESHOLD_MB
-from database import log_ping
+from database import log_ping, get_setting, log_health_records_batch, cleanup_health_history
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,10 @@ class DeviceStatus:
     cache_mb: float = 0.0
     data_mb: float = 0.0
     cache_alert: bool = False
+    # Auto-reconnect state
+    reconnect_attempts: int = 0
+    reconnect_next_at: Optional[float] = None  # timestamp
+    reconnect_circuit_open: bool = False
 
 
 class ConnectionChecker:
@@ -64,6 +69,9 @@ class ConnectionChecker:
         # Screenshot cleanup (every 60 checks = ~30 min at 30s interval)
         self._cleanup_interval = 60
         self._cleanup_counter = 0
+        # Health history logging (every 10 checks = ~5 min at 30s interval)
+        self._history_interval = 10
+        self._history_counter = 0
 
     async def start(self, check_interval: int = 30):
         """Start the background checker"""
@@ -125,18 +133,31 @@ class ConnectionChecker:
                     # Save status to database
                     await self._save_to_database()
 
-                # Periodic screenshot cleanup
+                    # Log health history (downsampled)
+                    self._history_counter += 1
+                    if self._history_counter >= self._history_interval:
+                        self._history_counter = 0
+                        await self._log_health_history()
+
+                    # Auto-reconnect offline devices
+                    await self._auto_reconnect_pass()
+
+                # Periodic screenshot cleanup + health history cleanup
                 self._cleanup_counter += 1
                 if self._cleanup_counter >= self._cleanup_interval:
                     self._cleanup_counter = 0
                     try:
-                        # Lazy import to avoid circular dependency
                         from routes.screenshots import cleanup_old_screenshots
                         result = cleanup_old_screenshots()
                         if result["deleted"] > 0:
                             logger.info(f"[ConnectionChecker] Screenshot cleanup: {result['message']}")
                     except Exception as e:
                         logger.debug(f"[ConnectionChecker] Cleanup error: {e}")
+                    try:
+                        retention = int(get_setting("health_history_retention_days") or "30")
+                        await asyncio.to_thread(cleanup_health_history, retention)
+                    except Exception as e:
+                        logger.debug(f"[ConnectionChecker] Health history cleanup error: {e}")
 
                 # Wait for next interval
                 await asyncio.sleep(self._check_interval)
@@ -279,9 +300,23 @@ class ConnectionChecker:
                         if result.online:
                             result.consecutive_failures = 0
                             result.last_online = datetime.now()
+                            # Reset reconnect state only on confirmed online (not unstable)
+                            if result.status == "online":
+                                result.reconnect_attempts = 0
+                                result.reconnect_next_at = None
+                                result.reconnect_circuit_open = False
+                            else:
+                                # Preserve reconnect state for unstable
+                                result.reconnect_attempts = old_status.reconnect_attempts
+                                result.reconnect_next_at = old_status.reconnect_next_at
+                                result.reconnect_circuit_open = old_status.reconnect_circuit_open
                         else:
                             result.consecutive_failures = old_status.consecutive_failures + 1
                             result.last_online = old_status.last_online
+                            # Preserve reconnect state
+                            result.reconnect_attempts = old_status.reconnect_attempts
+                            result.reconnect_next_at = old_status.reconnect_next_at
+                            result.reconnect_circuit_open = old_status.reconnect_circuit_open
                             # Grace period: keep as online (unstable) if recently online
                             if old_status.online and result.consecutive_failures < self._offline_threshold:
                                 result.online = True
@@ -439,6 +474,21 @@ class ConnectionChecker:
         await asyncio.to_thread(_batch_save)
         logger.debug(f"[ConnectionChecker] Saved {len(statuses)} device statuses to database")
 
+    async def _log_health_history(self):
+        """Log current device statuses to health history table (downsampled)."""
+        async with self._cache_lock:
+            now = datetime.now()
+            records = [
+                (s.ip, s.status, s.response_time, s.app_status, s.cache_mb, now)
+                for s in self._status_cache.values()
+            ]
+        if records:
+            try:
+                await asyncio.to_thread(log_health_records_batch, records)
+                logger.debug(f"[ConnectionChecker] Logged {len(records)} health history records")
+            except Exception as e:
+                logger.error(f"[ConnectionChecker] Health history log error: {e}")
+
     async def get_all_status(self) -> Dict:
         """Get all cached device statuses including cache info"""
         async with self._cache_lock:
@@ -571,6 +621,120 @@ class ConnectionChecker:
         """Enable or disable cache checking"""
         self._cache_check_enabled = enabled
         logger.info(f"[ConnectionChecker] Cache check {'enabled' if enabled else 'disabled'}")
+
+    # ============================================
+    # Auto-Reconnect
+    # ============================================
+
+    def _load_reconnect_settings(self) -> dict:
+        """Load auto-reconnect settings from database."""
+        return {
+            "enabled": get_setting("auto_reconnect_enabled") == "true",
+            "max_retries": int(get_setting("auto_reconnect_max_retries") or "10"),
+            "initial_delay": float(get_setting("auto_reconnect_initial_delay") or "5"),
+            "max_delay": float(get_setting("auto_reconnect_max_delay") or "300"),
+            "disabled_ips": set(json.loads(get_setting("auto_reconnect_disabled_ips") or "[]")),
+        }
+
+    async def _auto_reconnect_pass(self):
+        """Attempt to reconnect offline devices with exponential backoff."""
+        try:
+            settings = await asyncio.to_thread(self._load_reconnect_settings)
+        except Exception:
+            return
+
+        if not settings["enabled"]:
+            return
+
+        now = time.time()
+        reconnect_tasks = []
+
+        async with self._cache_lock:
+            candidates = [
+                s for s in self._status_cache.values()
+                if not s.online
+                and not s.reconnect_circuit_open
+                and s.ip not in settings["disabled_ips"]
+            ]
+
+        for status in candidates:
+            # Check backoff timer
+            if status.reconnect_next_at and now < status.reconnect_next_at:
+                continue
+            reconnect_tasks.append(self._try_reconnect(status, settings))
+
+        if reconnect_tasks:
+            await asyncio.gather(*reconnect_tasks, return_exceptions=True)
+
+    async def _try_reconnect(self, status: DeviceStatus, settings: dict):
+        """Try to reconnect a single device."""
+        ip = status.ip
+        logger.info(f"[AutoReconnect] Attempting reconnect {ip} (attempt {status.reconnect_attempts + 1})")
+
+        try:
+            result = await adb_manager.connect_device(ip)
+            success = result and ("connected" in str(result).lower() or "already" in str(result).lower())
+        except Exception as e:
+            logger.debug(f"[AutoReconnect] {ip} connect error: {e}")
+            success = False
+
+        async with self._cache_lock:
+            s = self._status_cache.get(ip)
+            if not s:
+                return
+
+            if success:
+                s.online = True
+                s.status = "online"
+                s.consecutive_failures = 0
+                s.last_online = datetime.now()
+                s.reconnect_attempts = 0
+                s.reconnect_next_at = None
+                s.reconnect_circuit_open = False
+                logger.info(f"[AutoReconnect] {ip} reconnected successfully")
+                await ws_manager.broadcast_json({
+                    "type": "reconnect_success",
+                    "ip": ip,
+                    "message": f"Device {ip} auto-reconnected",
+                })
+            else:
+                s.reconnect_attempts += 1
+                if s.reconnect_attempts >= settings["max_retries"]:
+                    s.reconnect_circuit_open = True
+                    logger.warning(f"[AutoReconnect] {ip} circuit breaker OPEN after {s.reconnect_attempts} attempts")
+                    await ws_manager.broadcast_json({
+                        "type": "reconnect_circuit_open",
+                        "ip": ip,
+                        "message": f"Auto-reconnect stopped for {ip} after {s.reconnect_attempts} failed attempts",
+                    })
+                else:
+                    delay = min(settings["initial_delay"] * (2 ** s.reconnect_attempts), settings["max_delay"])
+                    s.reconnect_next_at = time.time() + delay
+                    logger.debug(f"[AutoReconnect] {ip} failed, next retry in {delay:.0f}s")
+
+    async def reset_reconnect_state(self, ip: str):
+        """Reset circuit breaker for a device."""
+        async with self._cache_lock:
+            s = self._status_cache.get(ip)
+            if s:
+                s.reconnect_attempts = 0
+                s.reconnect_next_at = None
+                s.reconnect_circuit_open = False
+                logger.info(f"[AutoReconnect] Reset reconnect state for {ip}")
+
+    def get_reconnect_status(self) -> List[dict]:
+        """Get reconnect state for all devices (non-async, for API)."""
+        result = []
+        for s in self._status_cache.values():
+            if s.reconnect_attempts > 0 or s.reconnect_circuit_open:
+                result.append({
+                    "ip": s.ip,
+                    "online": s.online,
+                    "reconnect_attempts": s.reconnect_attempts,
+                    "reconnect_circuit_open": s.reconnect_circuit_open,
+                    "reconnect_next_at": s.reconnect_next_at,
+                })
+        return result
 
 
 # Global instance

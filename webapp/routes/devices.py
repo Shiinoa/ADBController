@@ -1,7 +1,11 @@
 """
 Device management API routes
 """
+import io
+import csv
+import json
 from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import StreamingResponse
 from typing import Optional, Any, Dict
 import asyncio
 
@@ -11,7 +15,7 @@ from adb_manager import adb_manager
 from websocket_manager import ws_manager
 from connection_checker import connection_checker
 from services.device_inventory import load_devices, save_devices
-from auth import require_authenticated_user
+from auth import require_auth, require_authenticated_user
 from database import (
     DEFAULT_DEVICE_PLANT_ID,
     DEFAULT_DEVICE_OWNER_USERNAME,
@@ -127,6 +131,35 @@ async def get_devices(request: Request, search: Optional[str] = None):
     user = require_authenticated_user(request)
     devices = _get_visible_devices(user, search)
     return {"devices": devices, "total": len(devices)}
+
+
+@router.get("/export")
+async def export_devices(request: Request, format: str = "csv"):
+    """Export device inventory as CSV or JSON."""
+    user = require_authenticated_user(request)
+    devices = _get_visible_devices(user)
+
+    if format == "json":
+        content = json.dumps(devices, indent=2, ensure_ascii=False).encode("utf-8")
+        return StreamingResponse(
+            io.BytesIO(content),
+            media_type="application/json",
+            headers={"Content-Disposition": "attachment; filename=devices_export.json"},
+        )
+
+    # CSV export
+    fields = ["Plant ID", *DEVICE_CSV_FIELD_ORDER]
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    for d in devices:
+        writer.writerow(d)
+    csv_bytes = buf.getvalue().encode("utf-8-sig")
+    return StreamingResponse(
+        io.BytesIO(csv_bytes),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=devices_export.csv"},
+    )
 
 
 @router.get("/connected")

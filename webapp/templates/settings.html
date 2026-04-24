@@ -117,6 +117,13 @@
                 </svg>
                 Multi-View
             </a>
+            <a href="/uptime" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                Uptime History
+            </a>
             <a href="/devices" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -201,6 +208,7 @@
             <button onclick="showTab('interchat')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="interchat">Interchat</button>
             <button onclick="showTab('alerts')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="alerts">Alert Settings</button>
             <button onclick="showTab('ntp')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="ntp">NTP Sync</button>
+            <button onclick="showTab('backup')" class="tab-btn shrink-0 px-4 py-2 rounded-lg bg-gray-100 admin-only hidden" data-tab="backup">Backup & Restore</button>
         </div>
 
         <!-- My Profile Tab -->
@@ -433,6 +441,43 @@
                     </div>
                     <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Save</button>
                 </form>
+
+                <!-- Auto-Reconnect Settings -->
+                <div class="mt-8 border-t pt-6">
+                    <h3 class="text-lg font-semibold mb-4">Auto-Reconnect</h3>
+                    <form id="reconnectForm" class="space-y-4 max-w-xl">
+                        <div class="p-3 bg-gray-100 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <label class="block text-sm font-medium">Enable Auto-Reconnect</label>
+                                    <p class="text-xs text-gray-500">Automatically attempt to reconnect offline devices</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="auto_reconnect_enabled" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm text-gray-500 mb-1">Max Retries</label>
+                                <input type="number" id="auto_reconnect_max_retries" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" min="1" max="100" placeholder="10">
+                                <p class="text-xs text-gray-500 mt-1">Circuit breaker threshold</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-500 mb-1">Initial Delay (s)</label>
+                                <input type="number" id="auto_reconnect_initial_delay" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" min="1" max="60" placeholder="5">
+                                <p class="text-xs text-gray-500 mt-1">First retry delay</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-500 mb-1">Max Delay (s)</label>
+                                <input type="number" id="auto_reconnect_max_delay" class="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" min="10" max="3600" placeholder="300">
+                                <p class="text-xs text-gray-500 mt-1">Maximum backoff</p>
+                            </div>
+                        </div>
+                        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Save</button>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -485,6 +530,61 @@
                         <p class="text-sm text-red-500 hidden" id="ntpLastErrorValue"></p>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Backup & Restore Tab -->
+        <div id="tab-backup" class="tab-content hidden admin-only">
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">Backup & Restore</h3>
+                <div class="space-y-6 max-w-2xl">
+
+                    <!-- Full Database Backup -->
+                    <div class="p-4 bg-gray-100 rounded-lg">
+                        <h4 class="font-medium mb-2">Full Database Backup</h4>
+                        <p class="text-sm text-gray-500 mb-3">Download a complete backup of the database including devices, users, settings, and all data.</p>
+                        <button onclick="window.location='/api/backup/download'" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Download Backup
+                        </button>
+                    </div>
+
+                    <!-- Restore Database -->
+                    <div class="p-4 bg-gray-100 rounded-lg">
+                        <h4 class="font-medium mb-2">Restore Database</h4>
+                        <p class="text-sm text-red-500 mb-3">Warning: This will replace ALL current data. A safety backup will be created automatically before restoring.</p>
+                        <input type="file" id="restoreFileInput" accept=".db" class="hidden" onchange="confirmRestore(this)">
+                        <button onclick="document.getElementById('restoreFileInput').click()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                            Upload & Restore
+                        </button>
+                    </div>
+
+                    <!-- Settings Export/Import -->
+                    <div class="p-4 bg-gray-100 rounded-lg">
+                        <h4 class="font-medium mb-2">Settings Export / Import</h4>
+                        <p class="text-sm text-gray-500 mb-3">Export or import system settings as JSON. Sensitive keys (passwords, tokens) are excluded.</p>
+                        <div class="flex gap-3">
+                            <button onclick="window.location='/api/settings/export'" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                Export Settings
+                            </button>
+                            <input type="file" id="settingsFileInput" accept=".json" class="hidden" onchange="importSettings(this)">
+                            <button onclick="document.getElementById('settingsFileInput').click()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Import Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -774,6 +874,10 @@
                 document.getElementById('ntp_server').value = settings.ntp_server || '';
                 document.getElementById('ntp_sync_enabled').checked = settings.ntp_sync_enabled !== 'false';
                 document.getElementById('ntp_sync_interval').value = settings.ntp_sync_interval || '900';
+                document.getElementById('auto_reconnect_enabled').checked = settings.auto_reconnect_enabled === 'true';
+                document.getElementById('auto_reconnect_max_retries').value = settings.auto_reconnect_max_retries || '10';
+                document.getElementById('auto_reconnect_initial_delay').value = settings.auto_reconnect_initial_delay || '5';
+                document.getElementById('auto_reconnect_max_delay').value = settings.auto_reconnect_max_delay || '300';
             } catch (e) {
                 console.error('Load settings error:', e);
             }
@@ -903,6 +1007,18 @@
                 alert_enabled: document.getElementById('alert_enabled').checked ? 'true' : 'false',
                 ping_interval: document.getElementById('ping_interval').value,
                 report_time: document.getElementById('report_time').value
+            };
+            await saveSettings(settings);
+        });
+
+        // Save Auto-Reconnect settings
+        document.getElementById('reconnectForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const settings = {
+                auto_reconnect_enabled: document.getElementById('auto_reconnect_enabled').checked ? 'true' : 'false',
+                auto_reconnect_max_retries: document.getElementById('auto_reconnect_max_retries').value,
+                auto_reconnect_initial_delay: document.getElementById('auto_reconnect_initial_delay').value,
+                auto_reconnect_max_delay: document.getElementById('auto_reconnect_max_delay').value,
             };
             await saveSettings(settings);
         });
@@ -1214,6 +1330,51 @@
             } catch (e) {
                 window.location.href = '/login';
             }
+        }
+
+        // Backup & Restore
+        async function confirmRestore(input) {
+            const file = input.files[0];
+            if (!file) return;
+            if (!confirm(`Are you sure you want to restore from "${file.name}"?\n\nThis will REPLACE all current data.\nA safety backup will be created automatically.`)) {
+                input.value = '';
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/api/backup/restore', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    showToast(data.detail || data.message || 'Restore failed', 'error');
+                }
+            } catch (e) {
+                showToast('Restore failed: ' + e.message, 'error');
+            }
+            input.value = '';
+        }
+
+        async function importSettings(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/api/settings/import', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showToast(data.detail || data.message || 'Import failed', 'error');
+                }
+            } catch (e) {
+                showToast('Import failed: ' + e.message, 'error');
+            }
+            input.value = '';
         }
 
         init();

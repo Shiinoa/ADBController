@@ -108,6 +108,15 @@ async def documents_page(request: Request):
     return templates.TemplateResponse("documents.html", {"request": request})
 
 
+@router.get("/uptime", response_class=HTMLResponse)
+async def uptime_page(request: Request):
+    """Uptime History page"""
+    user = require_auth(request)
+    if not user:
+        return RedirectResponse("/login")
+    return templates.TemplateResponse("uptime.html", {"request": request})
+
+
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Redirect to dashboard"""

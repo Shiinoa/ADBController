@@ -238,6 +238,13 @@
                 </svg>
                 Multi-View
             </a>
+            <a href="/uptime" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                Uptime History
+            </a>
             <a href="/devices" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -449,6 +456,36 @@
             <div class="flex items-center gap-1" id="controlPageButtons"></div>
         </div>
 
+        <!-- APK Deployment Progress (shown during install) -->
+        <div id="deploymentProgress" class="card rounded-xl p-4 mb-4 hidden">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="font-semibold text-sm">APK Deployment Progress</h4>
+                <span id="deploymentCounter" class="text-xs text-gray-500"></span>
+            </div>
+            <div id="deploymentDevices" class="space-y-1 max-h-48 overflow-y-auto"></div>
+        </div>
+
+        <!-- Deployment History (collapsible) -->
+        <details class="mb-4">
+            <summary class="cursor-pointer text-sm font-medium text-gray-500 hover:text-gray-700 py-2">
+                Deployment History
+            </summary>
+            <div id="deploymentHistory" class="card rounded-xl p-4 mt-2">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100"><tr>
+                        <th class="px-3 py-2 text-left">Date</th>
+                        <th class="px-3 py-2 text-left">File</th>
+                        <th class="px-3 py-2 text-center">Devices</th>
+                        <th class="px-3 py-2 text-center">Success</th>
+                        <th class="px-3 py-2 text-center">Failed</th>
+                        <th class="px-3 py-2 text-center">Status</th>
+                    </tr></thead>
+                    <tbody id="deploymentHistoryBody"></tbody>
+                </table>
+                <p id="deploymentHistoryEmpty" class="text-center text-gray-400 text-sm py-4 hidden">No deployments yet</p>
+            </div>
+        </details>
+
         <!-- Activity Log Toggle Bar -->
         <div class="log-toggle-bar" id="logToggleBar" onclick="toggleActivityLog()">
             <div class="flex items-center gap-2">
@@ -610,7 +647,7 @@
     </script>
 
     <!-- app.js (original, unmodified) -->
-    <script src="/static/js/app.js?v=3"></script>
+    <script src="/static/js/app.js?v=4"></script>
 
     <!-- Override renderDeviceTable to add pagination -->
     <script>
@@ -685,6 +722,71 @@
                 });
             }
         })();
+
+        // APK Deployment Progress & History
+        function handleApkProgress(data) {
+            const container = document.getElementById('deploymentProgress');
+            const devicesDiv = document.getElementById('deploymentDevices');
+            const counter = document.getElementById('deploymentCounter');
+            container.classList.remove('hidden');
+
+            const statusColors = {
+                pending: 'bg-gray-200 text-gray-600',
+                installing: 'bg-blue-100 text-blue-700',
+                success: 'bg-green-100 text-green-700',
+                failed: 'bg-red-100 text-red-700',
+            };
+
+            let row = document.getElementById(`dep-${data.ip}`);
+            if (!row) {
+                row = document.createElement('div');
+                row.id = `dep-${data.ip}`;
+                row.className = 'flex items-center justify-between text-sm py-1';
+                devicesDiv.appendChild(row);
+            }
+            const cls = statusColors[data.status] || 'bg-gray-200 text-gray-600';
+            row.innerHTML = `
+                <span class="font-mono">${data.ip}</span>
+                <span class="px-2 py-0.5 rounded text-xs ${cls}">${data.status}</span>
+            `;
+            counter.textContent = `${data.current || 0} / ${data.total || 0}`;
+
+            if (data.current === data.total && (data.status === 'success' || data.status === 'failed')) {
+                setTimeout(() => container.classList.add('hidden'), 5000);
+            }
+        }
+
+        async function loadDeploymentHistory() {
+            try {
+                const res = await fetch('/api/app/deployments?limit=10');
+                const data = await res.json();
+                const tbody = document.getElementById('deploymentHistoryBody');
+                const empty = document.getElementById('deploymentHistoryEmpty');
+                if (!data.deployments || data.deployments.length === 0) {
+                    tbody.innerHTML = '';
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                empty.classList.add('hidden');
+                tbody.innerHTML = data.deployments.map(d => `
+                    <tr class="border-b border-gray-100">
+                        <td class="px-3 py-2 text-xs">${d.created_at ? new Date(d.created_at).toLocaleString('th-TH') : '-'}</td>
+                        <td class="px-3 py-2">${d.filename || '-'}</td>
+                        <td class="px-3 py-2 text-center">${d.total_devices}</td>
+                        <td class="px-3 py-2 text-center text-green-600">${d.success_count}</td>
+                        <td class="px-3 py-2 text-center text-red-600">${d.failed_count}</td>
+                        <td class="px-3 py-2 text-center">
+                            <span class="px-2 py-0.5 rounded text-xs ${d.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${d.status}</span>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Load deployment history error:', e);
+            }
+        }
+
+        // Load deployment history on page load
+        loadDeploymentHistory();
     </script>
     <script src="/static/js/mobile-nav.js"></script>
 </body>

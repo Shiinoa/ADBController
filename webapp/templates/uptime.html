@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uptime History - ADB Control Center</title>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="flex">
+    <!-- Mobile Top Bar -->
+    <div class="mobile-topbar">
+        <button onclick="document.getElementById('mainSidebar').classList.toggle('-translate-x-full')" class="mobile-menu-btn" aria-label="Toggle menu">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <span class="mobile-topbar-title">Uptime History</span>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="mainSidebar" class="sidebar w-64 fixed h-screen flex flex-col p-4 -translate-x-full lg:translate-x-0 transition-transform z-50">
+        <div class="flex items-center gap-3 mb-8 px-2">
+            <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </div>
+            <div>
+                <h1 class="font-bold">ADB Control</h1>
+                <p class="text-xs text-gray-600">TV Management</p>
+            </div>
+        </div>
+
+        <nav class="space-y-2">
+            <a href="/dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                Dashboard
+            </a>
+            <a href="/control" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                Control Panel
+            </a>
+            <a href="/multiview" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                Multi-View
+            </a>
+            <a href="/uptime" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Uptime History
+            </a>
+            <a href="/devices" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                TV Devices
+            </a>
+            <a href="/reports" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Daily Reports
+            </a>
+            <a href="/documents" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                Documents
+            </a>
+            <a href="/report-form" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Report Form
+            </a>
+            <a href="/automate" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Automate
+            </a>
+            <a href="/settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Settings
+            </a>
+            <a href="/scrcpy-agent" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Scrcpy Agent
+            </a>
+        </nav>
+
+        <div class="absolute bottom-4 left-4 right-4">
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-100">
+                <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold" id="userInitial">A</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium" id="userName">Admin</p>
+                    <p class="text-xs text-gray-600" id="userRole">Administrator</p>
+                </div>
+                <button onclick="logout()" class="text-gray-400 hover:text-gray-900"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content" class="flex-1 ml-64 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold">Uptime History</h2>
+                <p class="text-gray-600">Monitor device online/offline trends</p>
+            </div>
+            <select id="timeRange" onchange="loadAll()" class="text-sm px-4 py-2 bg-gray-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="24">Last 24 Hours</option>
+                <option value="168">Last 7 Days</option>
+                <option value="720" selected>Last 30 Days</option>
+            </select>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="card rounded-xl p-5 text-center">
+                <p class="text-xs text-gray-500 mb-1">Avg Uptime</p>
+                <p class="text-2xl font-bold text-green-600" id="avgUptime">-</p>
+            </div>
+            <div class="card rounded-xl p-5 text-center">
+                <p class="text-xs text-gray-500 mb-1">100% Uptime</p>
+                <p class="text-2xl font-bold text-green-600" id="perfectCount">-</p>
+            </div>
+            <div class="card rounded-xl p-5 text-center">
+                <p class="text-xs text-gray-500 mb-1">Devices &lt; 80%</p>
+                <p class="text-2xl font-bold text-red-600" id="lowCount">-</p>
+            </div>
+            <div class="card rounded-xl p-5 text-center">
+                <p class="text-xs text-gray-500 mb-1">Total Monitored</p>
+                <p class="text-2xl font-bold" id="totalCount">-</p>
+            </div>
+        </div>
+
+        <!-- Device Table -->
+        <div class="card rounded-xl p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Device Details</h3>
+                <input type="text" id="searchDevice" placeholder="Search name, IP, location..." oninput="filterTable()"
+                       class="text-sm px-3 py-1.5 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" style="min-width:200px;">
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left cursor-pointer" onclick="sortTable('name')">Device</th>
+                            <th class="px-4 py-3 text-left cursor-pointer" onclick="sortTable('location')">Location</th>
+                            <th class="px-4 py-3 text-left cursor-pointer" onclick="sortTable('ip')">IP</th>
+                            <th class="px-4 py-3 text-center cursor-pointer" onclick="sortTable('uptime')">Uptime</th>
+                            <th class="px-4 py-3 text-center">Online</th>
+                            <th class="px-4 py-3 text-center">Offline</th>
+                            <th class="px-4 py-3 text-center">Avg RT</th>
+                            <th class="px-4 py-3 text-center w-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+    <script>
+        let allSummaries = [];
+        let filteredSummaries = [];
+        let sortKey = 'uptime';
+        let sortAsc = true;
+        let timelineChart = null;
+
+        function getHours() { return parseInt(document.getElementById('timeRange').value); }
+
+        async function loadAll() {
+            const hours = getHours();
+            try {
+                const res = await fetch(`/api/health-history/overview?hours=${hours}`);
+                const data = await res.json();
+                allSummaries = data.summaries || [];
+                filteredSummaries = [...allSummaries];
+                updateSummaryCards();
+                sortTable(sortKey);
+            } catch (e) {
+                console.error('Load error:', e);
+            }
+        }
+
+        function updateSummaryCards() {
+            const s = allSummaries;
+            if (s.length === 0) {
+                document.getElementById('avgUptime').textContent = '-';
+                document.getElementById('perfectCount').textContent = '-';
+                document.getElementById('lowCount').textContent = '-';
+                document.getElementById('totalCount').textContent = '0';
+                return;
+            }
+            const avg = (s.reduce((a, d) => a + d.uptime_percent, 0) / s.length).toFixed(1);
+            document.getElementById('avgUptime').textContent = avg + '%';
+            document.getElementById('perfectCount').textContent = s.filter(d => d.uptime_percent >= 99.9).length;
+            document.getElementById('lowCount').textContent = s.filter(d => d.uptime_percent < 80).length;
+            document.getElementById('totalCount').textContent = s.length;
+        }
+
+        function filterTable() {
+            const q = document.getElementById('searchDevice').value.toLowerCase();
+            filteredSummaries = allSummaries.filter(d =>
+                (d.name || '').toLowerCase().includes(q) ||
+                (d.ip || '').toLowerCase().includes(q) ||
+                (d.location || '').toLowerCase().includes(q)
+            );
+            renderTable();
+        }
+
+        function sortTable(key) {
+            if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = key === 'uptime'; }
+            renderTable();
+        }
+
+        let expandedIp = null;
+
+        function renderTable() {
+            const sorted = [...filteredSummaries].sort((a, b) => {
+                let va, vb;
+                switch (sortKey) {
+                    case 'name': va = a.name || a.ip; vb = b.name || b.ip; break;
+                    case 'location': va = a.location || ''; vb = b.location || ''; break;
+                    case 'ip': va = a.ip; vb = b.ip; break;
+                    default: va = a.uptime_percent; vb = b.uptime_percent;
+                }
+                if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+                return sortAsc ? va - vb : vb - va;
+            });
+
+            const tbody = document.getElementById('deviceTableBody');
+            let html = '';
+            sorted.forEach((d, i) => {
+                const pct = d.uptime_percent;
+                const barColor = pct >= 95 ? 'bg-green-500' : pct >= 80 ? 'bg-yellow-500' : 'bg-red-500';
+                const textColor = pct >= 95 ? 'text-green-600' : pct >= 80 ? 'text-yellow-600' : 'text-red-600';
+                const isExpanded = expandedIp === d.ip;
+                const rowBg = isExpanded ? 'bg-blue-50' : 'hover:bg-gray-50';
+                const chevron = isExpanded ? '&#9650;' : '&#9660;';
+                html += `<tr class="border-b border-gray-100 ${rowBg} cursor-pointer" onclick='toggleTimeline(${JSON.stringify(d)})'>
+                    <td class="px-4 py-3 font-medium">${d.name || '<span class="text-gray-400">-</span>'}</td>
+                    <td class="px-4 py-3 text-gray-500">${d.location || '-'}</td>
+                    <td class="px-4 py-3 font-mono text-xs">${d.ip}</td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <div class="w-16 bg-gray-200 rounded-full h-2"><div class="${barColor} h-2 rounded-full" style="width:${pct}%"></div></div>
+                            <span class="text-sm font-semibold ${textColor}">${pct}%</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center text-green-600">${d.online_count}</td>
+                    <td class="px-4 py-3 text-center text-red-600">${d.offline_count}</td>
+                    <td class="px-4 py-3 text-center text-gray-500">${d.avg_response_time}ms</td>
+                    <td class="px-4 py-3 text-center text-gray-400 text-xs">${chevron}</td>
+                </tr>`;
+                if (isExpanded) {
+                    html += `<tr id="timeline-row-${d.ip}"><td colspan="8" class="p-0">
+                        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <span class="font-semibold">${d.name || d.ip}</span>
+                                    <span class="text-sm text-gray-500 ml-2">${d.ip}${d.location ? ' - ' + d.location : ''}</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-xs">
+                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-green-500 inline-block"></span> Online</span>
+                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-yellow-500 inline-block"></span> Unstable</span>
+                                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-red-500 inline-block"></span> Offline</span>
+                                </div>
+                            </div>
+                            <div style="height:100px; position:relative;"><canvas id="timelineCanvas"></canvas></div>
+                            <div class="grid grid-cols-4 gap-3 mt-3">
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Uptime</p><p class="text-base font-bold ${textColor}">${pct}%</p></div>
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Online</p><p class="text-base font-bold text-green-600">${d.online_count}</p></div>
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Offline</p><p class="text-base font-bold text-red-600">${d.offline_count}</p></div>
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Avg RT</p><p class="text-base font-bold">${d.avg_response_time}ms</p></div>
+                            </div>
+                        </div>
+                    </td></tr>`;
+                }
+            });
+            tbody.innerHTML = html;
+
+            // Render timeline chart if expanded
+            if (expandedIp) {
+                const canvas = document.getElementById('timelineCanvas');
+                if (canvas) loadTimelineData(expandedIp);
+            }
+        }
+
+        async function toggleTimeline(device) {
+            if (expandedIp === device.ip) {
+                expandedIp = null;
+                renderTable();
+                return;
+            }
+            expandedIp = device.ip;
+            renderTable();
+        }
+
+        async function loadTimelineData(ip) {
+            const hours = getHours();
+            try {
+                const res = await fetch(`/api/health-history/${ip}?hours=${hours}&limit=2000`);
+                const data = await res.json();
+                const records = data.records || [];
+                if (records.length === 0) return;
+
+                const sorted = [...records].reverse();
+                const points = sorted.map(r => ({
+                    x: new Date(r.recorded_at),
+                    y: r.status === 'online' ? 1 : r.status === 'unstable' ? 0.5 : 0
+                }));
+                const colors = sorted.map(r =>
+                    r.status === 'online' ? '#22c55e' : r.status === 'unstable' ? '#eab308' : '#ef4444'
+                );
+
+                const ctx = document.getElementById('timelineCanvas').getContext('2d');
+                if (timelineChart) timelineChart.destroy();
+                timelineChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        datasets: [{
+                            data: points,
+                            backgroundColor: colors,
+                            borderRadius: 1,
+                            barPercentage: 1.0,
+                            categoryPercentage: 1.0,
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    title: (items) => new Date(items[0].raw.x).toLocaleString('th-TH'),
+                                    label: (ctx) => {
+                                        const v = ctx.raw.y;
+                                        return v === 1 ? 'Online' : v === 0.5 ? 'Unstable' : 'Offline';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: { tooltipFormat: 'dd/MM HH:mm' },
+                                ticks: { font: { size: 10 }, maxTicksLimit: 12 }
+                            },
+                            y: {
+                                min: 0, max: 1,
+                                ticks: {
+                                    stepSize: 0.5,
+                                    callback: v => v === 1 ? 'Online' : v === 0.5 ? 'Unstable' : 'Offline',
+                                    font: { size: 10 }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Timeline load error:', e);
+            }
+        }
+
+        // Toast
+        function showToast(msg, type = 'info') {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = `px-4 py-3 rounded-lg text-sm flex items-center gap-2 ${type === 'success' ? 'bg-green-600 text-white' : type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-700 text-white'}`;
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // Auth
+        async function loadUserInfo() {
+            try {
+                const res = await fetch('/api/auth/check');
+                const data = await res.json();
+                if (data.authenticated) {
+                    const u = data.user;
+                    document.getElementById('userName').textContent = u.username;
+                    document.getElementById('userRole').textContent = u.role === 'admin' ? 'Administrator' : 'User';
+                    document.getElementById('userInitial').textContent = u.username[0].toUpperCase();
+                } else { window.location.href = '/login'; }
+            } catch (e) { window.location.href = '/login'; }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        loadUserInfo();
+        loadAll();
+    </script>
+    <script src="/static/js/mobile-nav.js"></script>
+</body>
+</html>

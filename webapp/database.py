@@ -391,10 +391,61 @@ def init_db():
         'ntp_last_server': '',
         'ntp_last_sync': '',
         'ntp_last_error': '',
-        'ntp_offset_ms': '0'
+        'ntp_offset_ms': '0',
+        'auto_reconnect_enabled': 'false',
+        'auto_reconnect_max_retries': '10',
+        'auto_reconnect_initial_delay': '5',
+        'auto_reconnect_max_delay': '300',
+        'auto_reconnect_disabled_ips': '[]',
+        'health_history_retention_days': '30',
     }
     for key, value in default_settings.items():
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, value))
+
+    # APK deployment tracking tables
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS apk_deployments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            deployment_id TEXT UNIQUE NOT NULL,
+            filename TEXT NOT NULL,
+            file_size INTEGER DEFAULT 0,
+            target_devices TEXT NOT NULL,
+            total_devices INTEGER DEFAULT 0,
+            success_count INTEGER DEFAULT 0,
+            failed_count INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'pending',
+            created_by TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS apk_deployment_devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            deployment_id TEXT NOT NULL,
+            ip TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            error_message TEXT,
+            attempts INTEGER DEFAULT 0,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            FOREIGN KEY (deployment_id) REFERENCES apk_deployments(deployment_id)
+        )
+    ''')
+
+    # Device health history table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS device_health_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip TEXT NOT NULL,
+            status TEXT NOT NULL,
+            response_time REAL,
+            app_status TEXT DEFAULT 'unknown',
+            cache_mb REAL DEFAULT 0,
+            recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_health_ip_time ON device_health_history(ip, recorded_at)')
 
     cursor.execute('''
         INSERT OR IGNORE INTO plants (code, name, location, timezone, description, is_active)
@@ -1550,6 +1601,326 @@ def cleanup_automation_logs(days: int = 30) -> int:
     conn.commit()
     conn.close()
     return deleted
+
+
+# ============================================
+# APK Deployments
+# ============================================
+
+
+def create_deployment(deployment_id: str, filename: str, file_size: int,
+                      target_ips: List[str], created_by: str) -> Dict:
+    """Create a new APK deployment record with per-device entries."""
+    conn = get_db()
+    cursor = conn.cursor()
+    now = datetime.now()
+    cursor.execute(
+        "INSERT INTO apk_deployments (deployment_id, filename, file_size, target_devices, "
+        "total_devices, status, created_by, created_at) VALUES (?, ?, ?, ?, ?, 'in_progress', ?, ?)",
+        (deployment_id, filename, file_size, json.dumps(target_ips), len(target_ips), created_by, now)
+    )
+    for ip in target_ips:
+        cursor.execute(
+            "INSERT INTO apk_deployment_devices (deployment_id, ip, status) VALUES (?, ?, 'pending')",
+            (deployment_id, ip)
+        )
+    conn.commit()
+    conn.close()
+    return {"deployment_id": deployment_id, "total_devices": len(target_ips)}
+
+
+def update_deployment_device(deployment_id: str, ip: str, status: str,
+                             error_message: str = None):
+    """Update status of a single device in a deployment."""
+    conn = get_db()
+    cursor = conn.cursor()
+    now = datetime.now()
+    if status == "installing":
+        cursor.execute(
+            "UPDATE apk_deployment_devices SET status = ?, started_at = ?, "
+            "attempts = attempts + 1 WHERE deployment_id = ? AND ip = ?",
+            (status, now, deployment_id, ip)
+        )
+    else:
+        cursor.execute(
+            "UPDATE apk_deployment_devices SET status = ?, error_message = ?, "
+            "completed_at = ? WHERE deployment_id = ? AND ip = ?",
+            (status, error_message, now, deployment_id, ip)
+        )
+    # Update summary counts
+    cursor.execute(
+        "UPDATE apk_deployments SET "
+        "success_count = (SELECT COUNT(*) FROM apk_deployment_devices WHERE deployment_id = ? AND status = 'success'), "
+        "failed_count = (SELECT COUNT(*) FROM apk_deployment_devices WHERE deployment_id = ? AND status = 'failed') "
+        "WHERE deployment_id = ?",
+        (deployment_id, deployment_id, deployment_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def complete_deployment(deployment_id: str):
+    """Mark a deployment as completed."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE apk_deployments SET status = 'completed', completed_at = ? WHERE deployment_id = ?",
+        (datetime.now(), deployment_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_deployment(deployment_id: str) -> Optional[Dict]:
+    """Get deployment detail with per-device status."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM apk_deployments WHERE deployment_id = ?", (deployment_id,))
+    dep = cursor.fetchone()
+    if not dep:
+        conn.close()
+        return None
+    result = dict(dep)
+    cursor.execute(
+        "SELECT ip, status, error_message, attempts, started_at, completed_at "
+        "FROM apk_deployment_devices WHERE deployment_id = ? ORDER BY ip",
+        (deployment_id,)
+    )
+    result["devices"] = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return result
+
+
+def get_deployments(limit: int = 20, offset: int = 0) -> List[Dict]:
+    """List deployment history."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT deployment_id, filename, file_size, total_devices, success_count, failed_count, "
+        "status, created_by, created_at, completed_at FROM apk_deployments "
+        "ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        (limit, offset)
+    )
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_failed_deployment_devices(deployment_id: str) -> List[str]:
+    """Get IPs of failed devices in a deployment."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT ip FROM apk_deployment_devices WHERE deployment_id = ? AND status = 'failed'",
+        (deployment_id,)
+    )
+    ips = [r["ip"] for r in cursor.fetchall()]
+    conn.close()
+    return ips
+
+
+# ============================================
+# Health History
+# ============================================
+
+
+def log_health_record(ip: str, status: str, response_time: float = None,
+                      app_status: str = "unknown", cache_mb: float = 0):
+    """Append a health record for a device."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO device_health_history (ip, status, response_time, app_status, cache_mb, recorded_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (ip, status, response_time, app_status, cache_mb, datetime.now())
+    )
+    conn.commit()
+    conn.close()
+
+
+def log_health_records_batch(records: list):
+    """Batch insert health records. Each record is a tuple (ip, status, response_time, app_status, cache_mb, recorded_at)."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.executemany(
+        "INSERT INTO device_health_history (ip, status, response_time, app_status, cache_mb, recorded_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        records
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_health_history(ip: str, start: datetime, end: datetime, limit: int = 500) -> List[Dict]:
+    """Get health history for a device in a time range."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT ip, status, response_time, app_status, cache_mb, recorded_at "
+        "FROM device_health_history WHERE ip = ? AND recorded_at BETWEEN ? AND ? "
+        "ORDER BY recorded_at DESC LIMIT ?",
+        (ip, start, end, limit)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_health_summary(ip: str, start: datetime, end: datetime) -> Dict:
+    """Get uptime summary for a device."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) as total, "
+        "SUM(CASE WHEN status = 'online' THEN 1 ELSE 0 END) as online_count, "
+        "SUM(CASE WHEN status = 'offline' THEN 1 ELSE 0 END) as offline_count, "
+        "AVG(response_time) as avg_response_time "
+        "FROM device_health_history WHERE ip = ? AND recorded_at BETWEEN ? AND ?",
+        (ip, start, end)
+    )
+    row = cursor.fetchone()
+    conn.close()
+    total = row["total"] or 0
+    online = row["online_count"] or 0
+    return {
+        "ip": ip,
+        "total_checks": total,
+        "online_count": online,
+        "offline_count": row["offline_count"] or 0,
+        "uptime_percent": round(online / total * 100, 1) if total > 0 else 0,
+        "avg_response_time": round(row["avg_response_time"] or 0, 1),
+    }
+
+
+def get_all_devices_health_summary(start: datetime, end: datetime) -> List[Dict]:
+    """Get uptime summary for all devices with device name and location."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT h.ip, COUNT(*) as total, "
+        "SUM(CASE WHEN h.status = 'online' THEN 1 ELSE 0 END) as online_count, "
+        "SUM(CASE WHEN h.status = 'offline' THEN 1 ELSE 0 END) as offline_count, "
+        "AVG(h.response_time) as avg_response_time, "
+        "d.asset_name, d.default_location "
+        "FROM device_health_history h "
+        "LEFT JOIN device_inventory d ON h.ip = d.ip "
+        "WHERE h.recorded_at BETWEEN ? AND ? "
+        "GROUP BY h.ip ORDER BY h.ip",
+        (start, end)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        total = r["total"] or 0
+        online = r["online_count"] or 0
+        result.append({
+            "ip": r["ip"],
+            "name": r["asset_name"] or "",
+            "location": r["default_location"] or "",
+            "total_checks": total,
+            "online_count": online,
+            "offline_count": r["offline_count"] or 0,
+            "uptime_percent": round(online / total * 100, 1) if total > 0 else 0,
+            "avg_response_time": round(r["avg_response_time"] or 0, 1),
+        })
+    return result
+
+
+def cleanup_health_history(retention_days: int = 30) -> int:
+    """Delete health history older than retention_days."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cutoff = datetime.now() - timedelta(days=retention_days)
+    cursor.execute("DELETE FROM device_health_history WHERE recorded_at < ?", (cutoff,))
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    if deleted > 0:
+        logger.info(f"[DB] Cleaned up {deleted} health history records older than {retention_days} days")
+    return deleted
+
+
+# ============================================
+# Backup & Export
+# ============================================
+
+REQUIRED_TABLES = {"users", "settings", "device_inventory"}
+
+
+def backup_database(dest_path: str) -> bool:
+    """Create a safe backup of the live database using SQLite backup API."""
+    try:
+        src = sqlite3.connect(DB_PATH, timeout=30)
+        dst = sqlite3.connect(dest_path)
+        src.backup(dst)
+        dst.close()
+        src.close()
+        logger.info(f"[DB] Backup created: {dest_path}")
+        return True
+    except Exception as e:
+        logger.error(f"[DB] Backup failed: {e}")
+        return False
+
+
+def export_settings_json() -> Dict[str, str]:
+    """Export all settings as a dictionary (excludes sensitive keys)."""
+    SENSITIVE_EXPORT_KEYS = {"smtp_password", "interchat_token", "syno_chat_token"}
+    all_settings = get_all_settings()
+    return {k: v for k, v in all_settings.items() if k not in SENSITIVE_EXPORT_KEYS}
+
+
+def import_settings_json(data: Dict[str, str]) -> int:
+    """Import settings from a dictionary. Returns count of keys imported."""
+    SKIP_KEYS = {"smtp_password", "interchat_token", "syno_chat_token"}
+    count = 0
+    for key, value in data.items():
+        if key in SKIP_KEYS:
+            continue
+        set_setting(key, str(value))
+        count += 1
+    logger.info(f"[DB] Imported {count} settings")
+    return count
+
+
+def validate_backup_db(db_path: str) -> bool:
+    """Check if a file is a valid app database with required tables."""
+    try:
+        conn = sqlite3.connect(db_path, timeout=10)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = {row[0] for row in cursor.fetchall()}
+        conn.close()
+        return REQUIRED_TABLES.issubset(tables)
+    except Exception:
+        return False
+
+
+def restore_database(src_path: str) -> bool:
+    """Replace the current database with a backup file.
+    Creates a safety backup before replacing.
+    """
+    if not validate_backup_db(src_path):
+        logger.error("[DB] Restore failed: invalid database file")
+        return False
+
+    # Safety backup of current DB
+    safety_path = DB_PATH + f".before_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    if not backup_database(safety_path):
+        logger.error("[DB] Restore aborted: could not create safety backup")
+        return False
+
+    try:
+        src = sqlite3.connect(src_path, timeout=30)
+        dst = sqlite3.connect(DB_PATH, timeout=30)
+        src.backup(dst)
+        dst.close()
+        src.close()
+        logger.info(f"[DB] Database restored from {src_path}")
+        return True
+    except Exception as e:
+        logger.error(f"[DB] Restore failed: {e}")
+        return False
 
 
 # Initialize database on import

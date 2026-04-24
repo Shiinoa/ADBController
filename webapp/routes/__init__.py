@@ -16,6 +16,8 @@ from .scrcpy import router as scrcpy_router
 from .automation import router as automation_router
 from .documents import router as documents_router
 from .plants import router as plants_router
+from .backup import router as backup_router
+from .health_history import router as health_history_router
 
 __all__ = [
     'auth_router',
@@ -33,4 +35,6 @@ __all__ = [
     'automation_router',
     'documents_router',
     'plants_router',
+    'backup_router',
+    'health_history_router',
 ]

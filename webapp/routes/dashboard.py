@@ -160,3 +160,18 @@ async def set_checker_interval(request: Request, interval: int):
         "success": True,
         "check_interval": connection_checker.check_interval
     }
+
+
+@router.get("/reconnect/status")
+async def get_reconnect_status(request: Request):
+    """Get auto-reconnect state for all devices."""
+    require_authenticated_user(request)
+    return {"devices": connection_checker.get_reconnect_status()}
+
+
+@router.post("/reconnect/reset/{ip}")
+async def reset_reconnect(request: Request, ip: str):
+    """Reset circuit breaker for a device."""
+    require_admin_user(request)
+    await connection_checker.reset_reconnect_state(ip)
+    return {"success": True, "message": f"Reconnect state reset for {ip}"}

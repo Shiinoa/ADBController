@@ -2,10 +2,11 @@
 App management API routes
 """
 from fastapi import APIRouter, UploadFile, File, Form, Request, HTTPException
-from typing import List
+from typing import List, Optional
 import asyncio
 import os
 import tempfile
+import uuid
 import zipfile
 
 from models import AppRequest, validate_ip_address
@@ -14,6 +15,10 @@ from websocket_manager import ws_manager
 from connection_checker import connection_checker
 from config import CURRENT_DIR, CACHE_ALERT_THRESHOLD_MB
 from auth import require_auth, require_admin_user
+from database import (
+    create_deployment, update_deployment_device, complete_deployment,
+    get_deployment, get_deployments, get_failed_deployment_devices,
+)
 
 router = APIRouter(prefix="/api/app", tags=["app"])
 MAX_APK_SIZE = 200 * 1024 * 1024
@@ -150,7 +155,7 @@ async def clear_app_data(http_request: Request, request: AppRequest):
 @router.post("/install")
 async def install_apk(request: Request, ips: List[str] = Form(...), file: UploadFile = File(...)):
     """Install APK on multiple devices"""
-    require_admin_user(request)
+    user = require_admin_user(request)
     temp_path = None
     try:
         if not ips:
@@ -178,31 +183,73 @@ async def install_apk(request: Request, ips: List[str] = Form(...), file: Upload
 
         await ws_manager.log(f"Installing APK on {len(validated_ips)} devices...")
 
+        # Create deployment record
+        dep_id = uuid.uuid4().hex[:12]
+        file_size = os.path.getsize(temp_path)
+        create_deployment(dep_id, file.filename, file_size, validated_ips, user.get("username", "admin"))
+
         completed_count = 0
         lock = asyncio.Lock()
 
         async def install_single(ip: str):
             nonlocal completed_count
-            result = await adb_manager.install_apk(ip, temp_path)
+            try:
+                update_deployment_device(dep_id, ip, "installing")
+                await ws_manager.broadcast_json({
+                    "type": "apk_progress", "deployment_id": dep_id,
+                    "ip": ip, "status": "installing",
+                    "current": completed_count, "total": len(validated_ips),
+                })
+                result = await adb_manager.install_apk(ip, temp_path)
+                success = result.get("success", False)
+                dev_status = "success" if success else "failed"
+                error_msg = None if success else result.get("error", "Unknown error")
+            except Exception as e:
+                result = {"ip": ip, "success": False, "error": str(e)}
+                dev_status = "failed"
+                error_msg = str(e)
+            update_deployment_device(dep_id, ip, dev_status, error_msg)
             async with lock:
                 completed_count += 1
-                status = "Success" if result.get("success") else "Failed"
-                level = "success" if result.get("success") else "error"
-                await ws_manager.log(f"[{ip}] Install: {status}", level)
-                await ws_manager.progress_update(completed_count, len(validated_ips), ip)
+                level = "success" if dev_status == "success" else "error"
+                await ws_manager.log(f"[{ip}] Install: {dev_status}", level)
+                await ws_manager.broadcast_json({
+                    "type": "apk_progress", "deployment_id": dep_id,
+                    "ip": ip, "status": dev_status,
+                    "current": completed_count, "total": len(validated_ips),
+                    "error": error_msg,
+                })
             return result
 
         tasks = [install_single(ip) for ip in validated_ips]
         all_results = await asyncio.gather(*tasks, return_exceptions=True)
         results = [r for r in all_results if isinstance(r, dict)]
 
+        complete_deployment(dep_id)
         await ws_manager.task_complete("install", True, "APK installation completed")
-        return {"results": results}
+        return {"results": results, "deployment_id": dep_id}
 
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
         await file.close()
+
+
+@router.get("/deployments")
+async def list_deployments(request: Request, limit: int = 20, offset: int = 0):
+    """List APK deployment history."""
+    require_auth(request)
+    return {"deployments": get_deployments(limit, offset)}
+
+
+@router.get("/deployments/{deployment_id}")
+async def get_deployment_detail(request: Request, deployment_id: str):
+    """Get deployment detail with per-device status."""
+    require_auth(request)
+    dep = get_deployment(deployment_id)
+    if not dep:
+        raise HTTPException(status_code=404, detail="Deployment not found")
+    return dep
 
 
 # ============================================
