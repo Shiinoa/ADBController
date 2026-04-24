@@ -11,7 +11,7 @@ Web-based Android TV / ADB control center built with FastAPI, Jinja2, WebSocket,
 
 Architecture document:
 
-- [docs/architecture.md](/d:/LAB/TV_Data_collection/docs/architecture.md)
+- [docs/architecture.md](./docs/architecture.md)
 
 ## Architecture Overview
 
@@ -176,7 +176,7 @@ http://localhost:8000
 
 ## ADB / Scrcpy Path Detection
 
-The app auto-detects ADB and Scrcpy from common Windows and Linux paths in [webapp/config.py](/d:/LAB/TV_Data_collection/webapp/config.py).
+The app auto-detects ADB and Scrcpy from common Windows and Linux paths in [webapp/config.py](./webapp/config.py).
 
 You can also override with environment variables:
 
@@ -197,21 +197,30 @@ $env:SCRCPY_PATH="C:\path\to\scrcpy.exe"
 
 The repo includes:
 
-- [webapp/Dockerfile](/d:/LAB/TV_Data_collection/webapp/Dockerfile)
-- [webapp/docker-compose.yml](/d:/LAB/TV_Data_collection/webapp/docker-compose.yml)
+- [webapp/Dockerfile](./webapp/Dockerfile)
+- [webapp/docker-compose.yml](./webapp/docker-compose.yml)
 
-Quick start:
+Quick start (build from project root):
 
-```powershell
+```bash
 cd webapp
-docker compose up --build
+docker compose up -d --build
+```
+
+Rebuild after code changes:
+
+```bash
+cd webapp
+docker compose down && docker compose up -d --build
 ```
 
 Note:
 
-- The current compose file uses host networking
-- SQLite is file-based
-- ADB/Scrcpy features depend on the host/container environment
+- The Dockerfile builds from **project root** (context: `..`) to include `scrcpy/` and `client_agent/`
+- The compose file uses host networking for direct access to TV devices across subnets
+- SQLite is file-based, persisted via volume mounts
+- ADB uses the container's `/usr/bin/adb` (installed via `android-tools-adb`)
+- Scrcpy Windows binaries are packaged for client download only (not executed on server)
 
 ### Docker First Login
 
@@ -229,7 +238,7 @@ This repository currently does not include product screenshots.
 
 Screenshot folder guide:
 
-- [docs/screenshots/README.md](/d:/LAB/TV_Data_collection/docs/screenshots/README.md)
+- [docs/screenshots/README.md](./docs/screenshots/README.md)
 
 Recommended screenshots to add later:
 
@@ -337,7 +346,7 @@ Avoid running multiple app instances unless the background job model and databas
 
 ## Client Agent
 
-Optional Scrcpy client agent source is in [client_agent](/d:/LAB/TV_Data_collection/client_agent).
+Optional Scrcpy client agent source is in [client_agent](./client_agent).
 
 Install dependencies:
 
@@ -359,7 +368,7 @@ py client_agent.py
 - Do not commit `.db_path`
 - Do not commit runtime output folders such as reports, screenshots, and documents
 
-These are already covered by [.gitignore](/d:/LAB/TV_Data_collection/.gitignore).
+These are already covered by [.gitignore](./.gitignore).
 
 ## First-Time Setup Checklist
 
@@ -369,6 +378,17 @@ These are already covered by [.gitignore](/d:/LAB/TV_Data_collection/.gitignore)
 4. Ensure ADB is installed and reachable
 5. Run `py main.py`
 6. Open `http://localhost:8000`
+
+## Changelog
+
+### 2026-04-24
+
+- **Fix: Device search crash** -- Search with keyword caused 500 error due to non-string values (`None`, `int`) in device data. Fixed `adb_manager.py` to cast values to string before joining for search filter.
+- **Fix: Scrcpy Quick Download** -- "scrcpy files not found on server" error in Docker. Added `CURRENT_DIR` fallback paths in `scrcpy.py` so the app finds scrcpy and client_agent files inside the container (`/app/scrcpy/`).
+- **Fix: Docker build context** -- Dockerfile and docker-compose.yml updated to build from project root so `scrcpy/` and `client_agent/` are copied into the image.
+- **Fix: Database path in Docker** -- `.db_path` pointer file had a Windows path (`d:\LAB\...`) that doesn't work on Linux. Fixed to use Linux-compatible path with proper volume mount.
+- **Fix: CSV import parsing** -- Improved CSV quote handling with proper `parseCsvLine()` parser and better error messages showing which row failed.
+- **Add: `.dockerignore`** -- Exclude `.git`, `docs`, `__pycache__`, `.env`, and other unnecessary files from Docker build.
 
 ## Notes
 
