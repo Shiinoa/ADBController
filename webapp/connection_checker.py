@@ -69,8 +69,8 @@ class ConnectionChecker:
         # Screenshot cleanup (every 60 checks = ~30 min at 30s interval)
         self._cleanup_interval = 60
         self._cleanup_counter = 0
-        # Health history logging (every 10 checks = ~5 min at 30s interval)
-        self._history_interval = 10
+        # Health history logging (every 5 checks = ~2.5 min at 30s interval)
+        self._history_interval = 5
         self._history_counter = 0
 
     async def start(self, check_interval: int = 30):

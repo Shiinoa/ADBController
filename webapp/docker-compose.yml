@@ -20,4 +20,5 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - ADB_PATH=/usr/bin/adb
+      - TZ=Asia/Bangkok
     restart: unless-stopped
