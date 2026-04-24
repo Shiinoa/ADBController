@@ -381,14 +381,52 @@ These are already covered by [.gitignore](./.gitignore).
 
 ## Changelog
 
-### 2026-04-24
+### 2026-04-24 (Features)
 
-- **Fix: Device search crash** -- Search with keyword caused 500 error due to non-string values (`None`, `int`) in device data. Fixed `adb_manager.py` to cast values to string before joining for search filter.
-- **Fix: Scrcpy Quick Download** -- "scrcpy files not found on server" error in Docker. Added `CURRENT_DIR` fallback paths in `scrcpy.py` so the app finds scrcpy and client_agent files inside the container (`/app/scrcpy/`).
-- **Fix: Docker build context** -- Dockerfile and docker-compose.yml updated to build from project root so `scrcpy/` and `client_agent/` are copied into the image.
-- **Fix: Database path in Docker** -- `.db_path` pointer file had a Windows path (`d:\LAB\...`) that doesn't work on Linux. Fixed to use Linux-compatible path with proper volume mount.
-- **Fix: CSV import parsing** -- Improved CSV quote handling with proper `parseCsvLine()` parser and better error messages showing which row failed.
-- **Add: `.dockerignore`** -- Exclude `.git`, `docs`, `__pycache__`, `.env`, and other unnecessary files from Docker build.
+#### Feature 1: Export/Backup & Restore
+- Export device inventory as CSV or JSON from Devices page
+- Export/import system settings as JSON (sensitive keys excluded)
+- Full database backup download and restore with automatic safety backup
+- New "Backup & Restore" tab in Settings (admin only)
+
+#### Feature 2: Active Auto-Reconnect
+- Automatically attempt `adb connect` when devices go offline
+- Exponential backoff (5s to 300s max) with circuit breaker (configurable max retries)
+- Settings UI in Alert Settings tab (enable/disable, delays, max retries)
+- Dashboard toast notifications on reconnect success/failure
+- API endpoints for reconnect status and circuit breaker reset
+
+#### Feature 3: Device Health History & Uptime
+- Record device status every ~2.5 minutes with WiFi RSSI, CPU load, RAM usage
+- Auto cleanup after 30 days (configurable)
+- New `/uptime` page with summary cards, device table, and inline expand
+- Click device row to see online/offline timeline + WiFi/CPU/RAM mini charts
+- Custom date range picker (modal) or preset buttons (24h/7d/30d)
+- API: `/api/health-history/{ip}`, `/overview`, `/{ip}/summary`, `/cleanup`
+
+#### Feature 4: Bulk OTA / APK Deployment
+- Per-device progress tracking via WebSocket during APK install
+- Deployment history table in Control Panel
+- Database tables for deployment and per-device status tracking
+- Exception handling per device without affecting others
+
+#### Network Scan
+- New `/network-scan` page to discover ADB devices on subnets
+- Scan by manual subnet input or auto-detect from inventory
+- Shows ADB connection status (connected/unauthorized/refused) per device
+- Compares with inventory: in inventory vs new device
+- Summary cards: found, in inventory, new, connected
+
+#### Fixes & Improvements
+- Fix Docker timezone with `TZ=Asia/Bangkok` in docker-compose.yml
+- Fix device search crash (non-string values in filter)
+- Fix Scrcpy Quick Download path for Docker
+- Fix Docker build context for scrcpy/client_agent
+- Fix database path pointer for Linux
+- Fix CSV import parsing with proper quote handling
+- Fix missing `require_auth` import in devices.py
+- Add `.dockerignore` to exclude unnecessary files
+- Add Uptime History and Network Scan nav links to all page sidebars
 
 ## Notes
 
