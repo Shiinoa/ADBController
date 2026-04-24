@@ -1,11 +1,15 @@
 services:
   webapp:
-    build: .
+    build:
+      context: ..
+      dockerfile: webapp/Dockerfile
     # Use host networking so container can reach TV devices across subnets
     network_mode: host
     volumes:
       # Persistent data
       - ./app_data.db:/app/app_data.db
+      - ./app_data_main.db:/app/app_data_main.db
+      - ./.db_path:/app/.db_path
       - ./devices_data.csv:/app/devices_data.csv
       - ./screenshots:/app/screenshots
       - ./reports:/app/reports

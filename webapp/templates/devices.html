@@ -890,6 +890,38 @@
             importData = [];
         }
 
+        function parseCsvLine(line) {
+            const values = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+
+                if (char === '"') {
+                    const nextChar = line[i + 1];
+                    if (inQuotes && nextChar === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                    continue;
+                }
+
+                if (char === ',' && !inQuotes) {
+                    values.push(current);
+                    current = '';
+                    continue;
+                }
+
+                current += char;
+            }
+
+            values.push(current);
+            return values.map(value => value.trim());
+        }
+
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -903,14 +935,14 @@
                     return;
                 }
 
-                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                const headers = parseCsvLine(lines[0]).map(h => h.replace(/^\uFEFF/, '').replace(/"/g, ''));
                 importData = [];
 
                 for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].match(/(".*?"|[^",]+)/g) || [];
+                    const values = parseCsvLine(lines[i]);
                     const device = {};
                     headers.forEach((h, idx) => {
-                        device[h] = (values[idx] || '').replace(/^"|"$/g, '').trim();
+                        device[h] = values[idx] || '';
                     });
                     if (device['Asset Name'] || device['IP']) {
                         importData.push(device);
@@ -934,13 +966,14 @@
                 });
 
                 const data = await response.json();
+                const errorMessage = data.detail || data.message || 'Failed to import devices';
 
                 if (data.success) {
                     showToast(`Imported ${data.count} devices successfully`, 'success');
                     hideImportModal();
                     loadDevices();
                 } else {
-                    showToast(data.message || 'Failed to import devices', 'error');
+                    showToast(errorMessage, 'error');
                 }
             } catch (e) {
                 console.error('Import error:', e);

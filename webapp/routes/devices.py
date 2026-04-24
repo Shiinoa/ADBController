@@ -211,8 +211,11 @@ async def import_devices(request: Request, data: DeviceImportRequest):
     existing_ips = {d.get('IP') for d in devices if d.get('IP')}
 
     added = 0
-    for device in data.devices:
-        sanitized_device = _sanitize_device_payload(device, user, require_required_fields=False)
+    for index, device in enumerate(data.devices, start=1):
+        try:
+            sanitized_device = _sanitize_device_payload(device, user, require_required_fields=False)
+        except HTTPException as exc:
+            raise HTTPException(status_code=exc.status_code, detail=f"Import row {index}: {exc.detail}") from exc
         if not (sanitized_device.get('Asset Name') or sanitized_device.get('IP')):
             continue
 

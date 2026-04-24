@@ -8,11 +8,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install Python dependencies
-COPY requirements.txt .
+COPY webapp/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY . .
+COPY webapp/ .
+
+# Copy scrcpy files for Quick Download package (Windows binaries served to clients)
+COPY scrcpy/scrcpy-win64-v3.2/ /app/scrcpy/
+
+# Copy client_agent files
+COPY client_agent/ /app/client_agent/
 
 # Create directories for persistent data
 RUN mkdir -p screenshots reports documents

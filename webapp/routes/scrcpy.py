@@ -15,7 +15,7 @@ from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
-from config import BASE_DIR
+from config import BASE_DIR, CURRENT_DIR
 from websocket_manager import ws_manager
 from scrcpy_manager import scrcpy_window
 from auth import require_authenticated_user
@@ -68,18 +68,31 @@ def _build_package_zip() -> bytes:
     candidates = [
         os.path.join(BASE_DIR, "scrcpy", "scrcpy-win64-v3.2"),
         os.path.join(BASE_DIR, "scrcpy"),
+        os.path.join(CURRENT_DIR, "scrcpy", "scrcpy-win64-v3.2"),
+        os.path.join(CURRENT_DIR, "scrcpy"),
     ]
     for d in candidates:
-        if os.path.exists(os.path.join(d, "scrcpy.exe")):
+        scrcpy_exe_path = os.path.join(d, "scrcpy.exe")
+        logger.info(f"[Package] Checking: {scrcpy_exe_path} -> exists={os.path.exists(scrcpy_exe_path)}")
+        if os.path.exists(scrcpy_exe_path):
             scrcpy_dir = d
             break
 
     if not scrcpy_dir:
+        logger.warning(f"[Package] scrcpy.exe not found. BASE_DIR={BASE_DIR}, candidates={candidates}")
         return None
 
-    agent_file = os.path.join(BASE_DIR, "client_agent", "client_agent.py")
-    setup_bat = os.path.join(BASE_DIR, "client_agent", "setup_agent.bat")
-    agent_exe = os.path.join(BASE_DIR, "client_agent", "dist", "client_agent.exe")
+    # Find client_agent directory (check both BASE_DIR and CURRENT_DIR for Docker compatibility)
+    client_agent_dir = None
+    for base in [BASE_DIR, CURRENT_DIR]:
+        candidate = os.path.join(base, "client_agent")
+        if os.path.isdir(candidate):
+            client_agent_dir = candidate
+            break
+
+    agent_file = os.path.join(client_agent_dir, "client_agent.py") if client_agent_dir else ""
+    setup_bat = os.path.join(client_agent_dir, "setup_agent.bat") if client_agent_dir else ""
+    agent_exe = os.path.join(client_agent_dir, "dist", "client_agent.exe") if client_agent_dir else ""
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -88,18 +101,16 @@ def _build_package_zip() -> bytes:
             if os.path.exists(filepath):
                 zf.write(filepath, f"SCRCPY/{filename}")
 
-        if os.path.exists(agent_exe):
+        if agent_exe and os.path.exists(agent_exe):
             zf.write(agent_exe, "SCRCPY/client_agent.exe")
-        if os.path.exists(agent_file):
-            # Keep the Python agent next to setup_agent.bat so the batch script
-            # can run directly after the user extracts the zip.
+        if agent_file and os.path.exists(agent_file):
             zf.write(agent_file, "client_agent.py")
 
-        if os.path.exists(setup_bat):
+        if setup_bat and os.path.exists(setup_bat):
             zf.write(setup_bat, "setup_agent.bat")
 
-        req_file = os.path.join(BASE_DIR, "client_agent", "requirements.txt")
-        if os.path.exists(req_file):
+        req_file = os.path.join(client_agent_dir, "requirements.txt") if client_agent_dir else ""
+        if req_file and os.path.exists(req_file):
             zf.write(req_file, "requirements.txt")
 
     return buf.getvalue()
@@ -107,12 +118,19 @@ def _build_package_zip() -> bytes:
 
 def _get_latest_mtime() -> float:
     """Get the newest mtime of key source files for cache invalidation."""
-    agent_exe = os.path.join(BASE_DIR, "client_agent", "dist", "client_agent.exe")
-    agent_py = os.path.join(BASE_DIR, "client_agent", "client_agent.py")
-    setup_bat = os.path.join(BASE_DIR, "client_agent", "setup_agent.bat")
-    req_file = os.path.join(BASE_DIR, "client_agent", "requirements.txt")
+    paths = []
+    for base in [BASE_DIR, CURRENT_DIR]:
+        ca = os.path.join(base, "client_agent")
+        if os.path.isdir(ca):
+            paths = [
+                os.path.join(ca, "dist", "client_agent.exe"),
+                os.path.join(ca, "client_agent.py"),
+                os.path.join(ca, "setup_agent.bat"),
+                os.path.join(ca, "requirements.txt"),
+            ]
+            break
     latest = 0
-    for p in [agent_exe, agent_py, setup_bat, req_file]:
+    for p in paths:
         try:
             latest = max(latest, os.path.getmtime(p))
         except OSError:
@@ -200,8 +218,13 @@ async def download_scrcpy_package(request: Request):
 @router.get("/api/scrcpy/download-agent")
 async def download_agent_script(request: Request):
     """Download just the client_agent.py script"""
-    agent_file = os.path.join(BASE_DIR, "client_agent", "client_agent.py")
-    if not os.path.exists(agent_file):
+    agent_file = None
+    for base in [BASE_DIR, CURRENT_DIR]:
+        candidate = os.path.join(base, "client_agent", "client_agent.py")
+        if os.path.exists(candidate):
+            agent_file = candidate
+            break
+    if not agent_file:
         return {"success": False, "message": "client_agent.py not found"}
 
     with open(agent_file, 'r', encoding='utf-8') as f:

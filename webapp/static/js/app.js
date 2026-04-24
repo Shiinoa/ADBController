@@ -106,9 +106,11 @@ function clearLog() {
 async function loadDevices(search = '') {
     try {
         const url = search ? `/api/devices?search=${encodeURIComponent(search)}` : '/api/devices';
+        console.log('[Search] fetching:', url);
         const response = await fetch(url);
         const data = await response.json();
-        devices = data.devices;
+        devices = data.devices || [];
+        console.log('[Search] results:', devices.length);
         renderDeviceTable();
         updateDeviceCount();
     } catch (error) {
@@ -524,9 +526,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Search input with debounce
     const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', debounce((e) => {
-        loadDevices(e.target.value);
-    }, 300));
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce((e) => {
+            console.log('[Search] input:', e.target.value);
+            loadDevices(e.target.value);
+        }, 300));
+    }
 
     // APK file input handler
     document.getElementById('apkFileInput').addEventListener('change', function() {

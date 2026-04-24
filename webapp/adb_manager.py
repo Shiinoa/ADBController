@@ -215,7 +215,7 @@ class ADBManager:
             t_ip = row.get("IP")
             if not t_ip:
                 for v in row.values():
-                    if v and (v.startswith("10.10.") or v.startswith("192.168.")):
+                    if v and isinstance(v, str) and (v.startswith("10.10.") or v.startswith("192.168.")):
                         t_ip = v
                         break
             if not t_ip:
@@ -225,7 +225,7 @@ class ADBManager:
             clean_row["IP"] = t_ip
 
             if keyword:
-                all_text = " ".join(clean_row.values()).lower()
+                all_text = " ".join(str(v) for v in clean_row.values() if v is not None).lower()
                 search_terms = [k.strip().lower() for k in keyword.split(',') if k.strip()]
                 if not search_terms or any(term in all_text for term in search_terms):
                     data_list.append(clean_row)

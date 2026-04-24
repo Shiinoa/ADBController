@@ -1,0 +1,10 @@
+.git
+.claude
+docs
+2026
+*.db
+*.db-journal
+__pycache__
+*.pyc
+.env
+node_modules

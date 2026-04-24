@@ -213,6 +213,16 @@ Note:
 - SQLite is file-based
 - ADB/Scrcpy features depend on the host/container environment
 
+### Docker First Login
+
+If the container creates a new default `admin` user on first startup, read the generated credentials from inside the container:
+
+```bash
+docker compose exec webapp sh -lc 'cat /app/.admin_credentials'
+```
+
+Use this only for initial setup or troubleshooting. Prefer setting `ADB_ADMIN_PASSWORD` explicitly for predictable Docker deployments.
+
 ## Screenshots
 
 This repository currently does not include product screenshots.
