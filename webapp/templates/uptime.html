@@ -65,6 +65,13 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 Automate
             </a>
+            <a href="/network-scan" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                </svg>
+                Network Scan
+            </a>
             <a href="/settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Settings
@@ -96,19 +103,38 @@
                 <h2 class="text-2xl font-bold">Uptime History</h2>
                 <p class="text-gray-600">Monitor device online/offline trends</p>
             </div>
-            <div class="flex flex-col gap-2 items-end">
-                <div class="flex items-center gap-2">
-                    <button onclick="setPreset(24)" class="preset-btn text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">24h</button>
-                    <button onclick="setPreset(168)" class="preset-btn text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">7d</button>
-                    <button onclick="setPreset(720)" class="preset-btn text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">30d</button>
-                </div>
-                <div class="flex items-center gap-1">
-                    <input type="date" id="startDate" onchange="loadCustomRange()" class="text-xs px-1.5 py-1 bg-gray-100 rounded border-0 focus:outline-none focus:ring-2 focus:ring-green-500" style="width:120px">
-                    <input type="time" id="startTime" value="08:00" onchange="loadCustomRange()" class="text-xs px-1.5 py-1 bg-gray-100 rounded border-0 focus:outline-none focus:ring-2 focus:ring-green-500" style="width:80px">
-                    <span class="text-gray-400 text-xs">to</span>
-                    <input type="date" id="endDate" onchange="loadCustomRange()" class="text-xs px-1.5 py-1 bg-gray-100 rounded border-0 focus:outline-none focus:ring-2 focus:ring-green-500" style="width:120px">
-                    <input type="time" id="endTime" value="17:00" onchange="loadCustomRange()" class="text-xs px-1.5 py-1 bg-gray-100 rounded border-0 focus:outline-none focus:ring-2 focus:ring-green-500" style="width:80px">
-                    <button onclick="loadCustomRange()" class="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded">Go</button>
+            <div class="flex items-center gap-2">
+                <button onclick="setPreset(24)" class="preset-btn text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">24h</button>
+                <button onclick="setPreset(168)" class="preset-btn text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">7d</button>
+                <button onclick="setPreset(720)" class="preset-btn text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white">30d</button>
+                <div class="relative">
+                    <button onclick="toggleDatePicker()" id="customRangeBtn" class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Custom
+                    </button>
+                    <div id="datePickerPopup" class="hidden absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50" style="min-width:280px">
+                        <p class="text-sm font-medium mb-3">Custom Date Range</p>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs text-gray-500">From</label>
+                                <div class="flex gap-2 mt-1">
+                                    <input type="date" id="startDate" class="text-sm px-2 py-1.5 bg-gray-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-green-500 flex-1">
+                                    <input type="time" id="startTime" value="00:00" class="text-sm px-2 py-1.5 bg-gray-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-green-500" style="width:100px">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500">To</label>
+                                <div class="flex gap-2 mt-1">
+                                    <input type="date" id="endDate" class="text-sm px-2 py-1.5 bg-gray-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-green-500 flex-1">
+                                    <input type="time" id="endTime" value="23:59" class="text-sm px-2 py-1.5 bg-gray-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-green-500" style="width:100px">
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="loadCustomRange(); toggleDatePicker();" class="flex-1 text-sm px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">Apply</button>
+                                <button onclick="toggleDatePicker()" class="text-sm px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -182,6 +208,19 @@
             document.getElementById('endDate').value = today;
         }
 
+        function toggleDatePicker() {
+            document.getElementById('datePickerPopup').classList.toggle('hidden');
+        }
+
+        // Close popup when clicking outside
+        document.addEventListener('click', (e) => {
+            const popup = document.getElementById('datePickerPopup');
+            const btn = document.getElementById('customRangeBtn');
+            if (popup && !popup.contains(e.target) && !btn.contains(e.target)) {
+                popup.classList.add('hidden');
+            }
+        });
+
         function setPreset(hours) {
             currentMode = 'preset';
             currentPresetHours = hours;
@@ -189,6 +228,7 @@
                 b.className = 'preset-btn text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200';
             });
             event.target.className = 'preset-btn text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white';
+            document.getElementById('customRangeBtn').className = 'text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center gap-1';
             loadAll();
         }
 
@@ -201,9 +241,11 @@
             customStart = `${sd}T${st || '00:00'}`;
             customEnd = `${ed}T${et || '23:59'}`;
             currentMode = 'custom';
+            // Highlight Custom button, reset presets
             document.querySelectorAll('.preset-btn').forEach(b => {
                 b.className = 'preset-btn text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200';
             });
+            document.getElementById('customRangeBtn').className = 'text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white flex items-center gap-1';
             loadAll();
         }
 
@@ -299,6 +341,12 @@
                     <td class="px-4 py-3 text-center text-gray-400 text-xs">${chevron}</td>
                 </tr>`;
                 if (isExpanded) {
+                    const wifiColor = d.avg_wifi_rssi == null ? 'text-gray-400' : d.avg_wifi_rssi > -65 ? 'text-green-600' : d.avg_wifi_rssi > -85 ? 'text-yellow-600' : 'text-red-600';
+                    const wifiLabel = d.avg_wifi_rssi == null ? '-' : d.avg_wifi_rssi + ' dBm';
+                    const cpuColor = d.avg_cpu_usage == null ? 'text-gray-400' : d.avg_cpu_usage < 50 ? 'text-green-600' : d.avg_cpu_usage < 80 ? 'text-yellow-600' : 'text-red-600';
+                    const cpuLabel = d.avg_cpu_usage == null ? '-' : d.avg_cpu_usage + '%';
+                    const ramColor = d.avg_ram_usage == null ? 'text-gray-400' : d.avg_ram_usage < 70 ? 'text-green-600' : d.avg_ram_usage < 90 ? 'text-yellow-600' : 'text-red-600';
+                    const ramLabel = d.avg_ram_usage == null ? '-' : d.avg_ram_usage + '%';
                     html += `<tr id="timeline-row-${d.ip}"><td colspan="8" class="p-0">
                         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
                             <div class="flex items-center justify-between mb-3">
@@ -312,12 +360,23 @@
                                     <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-red-500 inline-block"></span> Offline</span>
                                 </div>
                             </div>
+                            <!-- Timeline Chart -->
                             <div style="height:100px; position:relative;"><canvas id="timelineCanvas"></canvas></div>
-                            <div class="grid grid-cols-4 gap-3 mt-3">
-                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Uptime</p><p class="text-base font-bold ${textColor}">${pct}%</p></div>
-                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Online</p><p class="text-base font-bold text-green-600">${d.online_count}</p></div>
-                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Offline</p><p class="text-base font-bold text-red-600">${d.offline_count}</p></div>
-                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Avg RT</p><p class="text-base font-bold">${d.avg_response_time}ms</p></div>
+                            <!-- Stats Cards -->
+                            <div class="grid grid-cols-3 md:grid-cols-7 gap-2 mt-3">
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Uptime</p><p class="text-sm font-bold ${textColor}">${pct}%</p></div>
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Online</p><p class="text-sm font-bold text-green-600">${d.online_count}</p></div>
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Offline</p><p class="text-sm font-bold text-red-600">${d.offline_count}</p></div>
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">Avg RT</p><p class="text-sm font-bold">${d.avg_response_time}ms</p></div>
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">WiFi</p><p class="text-sm font-bold ${wifiColor}">${wifiLabel}</p></div>
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">CPU</p><p class="text-sm font-bold ${cpuColor}">${cpuLabel}</p></div>
+                                <div class="bg-white rounded-lg p-2 text-center"><p class="text-xs text-gray-500">RAM</p><p class="text-sm font-bold ${ramColor}">${ramLabel}</p></div>
+                            </div>
+                            <!-- Detail Charts (WiFi/CPU/RAM over time) -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                                <div class="bg-white rounded-lg p-3"><p class="text-xs text-gray-500 mb-1">WiFi Signal (dBm)</p><div style="height:80px;position:relative;"><canvas id="wifiChart"></canvas></div></div>
+                                <div class="bg-white rounded-lg p-3"><p class="text-xs text-gray-500 mb-1">CPU Load (%)</p><div style="height:80px;position:relative;"><canvas id="cpuChart"></canvas></div></div>
+                                <div class="bg-white rounded-lg p-3"><p class="text-xs text-gray-500 mb-1">RAM Usage (%)</p><div style="height:80px;position:relative;"><canvas id="ramChart"></canvas></div></div>
                             </div>
                         </div>
                     </td></tr>`;
@@ -389,6 +448,9 @@
                                         const lines = [];
                                         if (r.app_status && r.app_status !== 'unknown') lines.push(`App: ${r.app_status}`);
                                         if (r.response_time) lines.push(`Response: ${Math.round(r.response_time)}ms`);
+                                        if (r.wifi_rssi) lines.push(`WiFi: ${r.wifi_rssi} dBm`);
+                                        if (r.cpu_usage != null) lines.push(`CPU: ${r.cpu_usage}%`);
+                                        if (r.ram_usage_percent != null) lines.push(`RAM: ${r.ram_usage_percent}%`);
                                         if (r.cache_mb) lines.push(`Cache: ${r.cache_mb}MB`);
                                         return lines;
                                     }
@@ -412,9 +474,66 @@
                         }
                     }
                 });
+                // Render WiFi/CPU/RAM mini charts
+                renderMiniChart('wifiChart', sorted, 'wifi_rssi', '#3b82f6', 'dBm', -100, 0);
+                renderMiniChart('cpuChart', sorted, 'cpu_usage', '#f59e0b', '%', 0, 100);
+                renderMiniChart('ramChart', sorted, 'ram_usage_percent', '#8b5cf6', '%', 0, 100);
+
             } catch (e) {
                 console.error('Timeline load error:', e);
             }
+        }
+
+        let miniCharts = {};
+        function renderMiniChart(canvasId, records, field, color, unit, suggestedMin, suggestedMax) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            if (miniCharts[canvasId]) miniCharts[canvasId].destroy();
+
+            const data = records
+                .filter(r => r[field] != null)
+                .map(r => ({ x: new Date(r.recorded_at), y: r[field] }));
+
+            if (data.length === 0) {
+                miniCharts[canvasId] = new Chart(canvas.getContext('2d'), {
+                    type: 'line', data: { datasets: [] },
+                    options: { responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false },
+                            title: { display: true, text: 'No data', font: { size: 11 }, color: '#9ca3af' } } }
+                });
+                return;
+            }
+
+            miniCharts[canvasId] = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        data: data,
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        fill: true,
+                        pointRadius: 0,
+                        borderWidth: 1.5,
+                        tension: 0.3,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => new Date(items[0].raw.x).toLocaleString('th-TH'),
+                                label: (ctx) => `${ctx.raw.y}${unit}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { type: 'time', display: true, ticks: { font: { size: 9 }, maxTicksLimit: 6 } },
+                        y: { suggestedMin, suggestedMax, ticks: { font: { size: 9 }, callback: v => v + unit } }
+                    }
+                }
+            });
         }
 
         // Toast

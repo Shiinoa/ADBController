@@ -36,6 +36,7 @@ from routes import (
     plants_router,
     backup_router,
     health_history_router,
+    network_scan_router,
 )
 
 # Print configuration on startup
@@ -165,6 +166,9 @@ app.include_router(backup_router)
 
 # Health History routes (/api/health-history/*)
 app.include_router(health_history_router)
+
+# Network Scan routes (/api/network-scan/*)
+app.include_router(network_scan_router)
 
 
 # ============================================

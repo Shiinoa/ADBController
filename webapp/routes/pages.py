@@ -108,6 +108,15 @@ async def documents_page(request: Request):
     return templates.TemplateResponse("documents.html", {"request": request})
 
 
+@router.get("/network-scan", response_class=HTMLResponse)
+async def network_scan_page(request: Request):
+    """Network Scan page"""
+    user = require_auth(request)
+    if not user:
+        return RedirectResponse("/login")
+    return templates.TemplateResponse("network-scan.html", {"request": request})
+
+
 @router.get("/uptime", response_class=HTMLResponse)
 async def uptime_page(request: Request):
     """Uptime History page"""

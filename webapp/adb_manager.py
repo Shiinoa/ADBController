@@ -133,6 +133,43 @@ class ADBManager:
                         pass
         return await asyncio.to_thread(_check)
 
+    async def scan_network(self, subnet: str, port: int = 5555, timeout: float = 1.0) -> List[Dict]:
+        """Scan a subnet for ADB devices. subnet format: '10.10.210' or '10.10.210.0/24'"""
+        import ipaddress
+        # Parse subnet
+        if '/' in subnet:
+            network = ipaddress.ip_network(subnet, strict=False)
+            ips = [str(ip) for ip in network.hosts()]
+        else:
+            # Assume /24 if just prefix given
+            parts = subnet.strip('.').split('.')
+            if len(parts) == 3:
+                ips = [f"{subnet}.{i}" for i in range(1, 255)]
+            else:
+                ips = [subnet]
+
+        # Parallel port scan
+        async def _check_one(ip):
+            open_port = await self.fast_port_check(ip, port, timeout)
+            return {"ip": ip, "port_open": open_port} if open_port else None
+
+        tasks = [_check_one(ip) for ip in ips]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        found = [r for r in results if isinstance(r, dict)]
+
+        # Try ADB connect on found devices
+        for device in found:
+            try:
+                result = await self.run_adb_async(f"connect {device['ip']}")
+                device["adb_status"] = "connected" if "connected" in result.lower() else \
+                                       "unauthorized" if "unauthorized" in result.lower() else \
+                                       "refused" if "refused" in result.lower() else result.strip()
+            except Exception:
+                device["adb_status"] = "error"
+
+        logger.info(f"[Scan] Scanned {len(ips)} IPs, found {len(found)} with port {port} open")
+        return found
+
     async def ensure_connected(self, ip: str, fast_check: bool = True) -> bool:
         """Ensure device is connected before running commands"""
         # Validate IP format first
@@ -394,6 +431,59 @@ class ADBManager:
                         result["status"] = "High Cache"
                         result["action"] = "Clear Cache"
 
+        return result
+
+    async def quick_device_stats(self, ip: str) -> Dict:
+        """Lightweight query for WiFi RSSI, CPU usage, RAM usage. Used by health history."""
+        result = {"wifi_rssi": None, "wifi_link_speed": None, "cpu_usage": None,
+                  "ram_total_mb": None, "ram_available_mb": None, "ram_usage_percent": None}
+        try:
+            # Combined ADB shell command for efficiency (single connection)
+            combined = await self.run_adb_on_device(
+                ip,
+                'shell "cat /proc/meminfo; echo __SEP__; '
+                'cat /proc/loadavg; echo __SEP__; '
+                'dumpsys wifi | grep -E \'RSSI|Link speed\'"'
+            )
+            if "Error" in combined or "not found" in combined:
+                return result
+
+            parts = combined.split("__SEP__")
+
+            # Parse RAM from /proc/meminfo
+            if len(parts) >= 1:
+                mem = parts[0]
+                total_m = re.search(r"MemTotal:\s+(\d+)", mem)
+                avail_m = re.search(r"MemAvailable:\s+(\d+)", mem) or re.search(r"MemFree:\s+(\d+)", mem)
+                if total_m:
+                    result["ram_total_mb"] = round(int(total_m.group(1)) / 1024, 1)
+                if avail_m:
+                    result["ram_available_mb"] = round(int(avail_m.group(1)) / 1024, 1)
+                if result["ram_total_mb"] and result["ram_available_mb"]:
+                    used = result["ram_total_mb"] - result["ram_available_mb"]
+                    result["ram_usage_percent"] = round(used / result["ram_total_mb"] * 100, 1)
+
+            # Parse CPU load from /proc/loadavg (1-min load average)
+            if len(parts) >= 2:
+                load = parts[1].strip()
+                load_match = re.match(r"([\d.]+)", load)
+                if load_match:
+                    # loadavg is not percentage, approximate: load / num_cores * 100
+                    result["cpu_usage"] = round(float(load_match.group(1)) * 100, 1)
+                    if result["cpu_usage"] > 100:
+                        result["cpu_usage"] = 100.0
+
+            # Parse WiFi RSSI
+            if len(parts) >= 3:
+                wifi = parts[2]
+                rssi_m = re.search(r"RSSI[:\s]+(-?\d+)", wifi)
+                if rssi_m:
+                    result["wifi_rssi"] = int(rssi_m.group(1))
+                speed_m = re.search(r"Link speed[:\s]+(\d+)", wifi)
+                if speed_m:
+                    result["wifi_link_speed"] = int(speed_m.group(1))
+        except Exception as e:
+            logger.debug(f"[Stats] {ip} quick_device_stats error: {e}")
         return result
 
     async def check_screen_status(self, ip: str) -> Dict:

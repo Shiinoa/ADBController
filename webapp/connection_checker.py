@@ -37,6 +37,13 @@ class DeviceStatus:
     cache_mb: float = 0.0
     data_mb: float = 0.0
     cache_alert: bool = False
+    # Device stats (WiFi/CPU/RAM)
+    wifi_rssi: Optional[int] = None
+    wifi_link_speed: Optional[int] = None
+    cpu_usage: Optional[float] = None
+    ram_usage_percent: Optional[float] = None
+    ram_total_mb: Optional[float] = None
+    ram_available_mb: Optional[float] = None
     # Auto-reconnect state
     reconnect_attempts: int = 0
     reconnect_next_at: Optional[float] = None  # timestamp
@@ -133,10 +140,11 @@ class ConnectionChecker:
                     # Save status to database
                     await self._save_to_database()
 
-                    # Log health history (downsampled)
+                    # Log health history with device stats (downsampled)
                     self._history_counter += 1
                     if self._history_counter >= self._history_interval:
                         self._history_counter = 0
+                        await self._collect_device_stats()
                         await self._log_health_history()
 
                     # Auto-reconnect offline devices
@@ -474,12 +482,47 @@ class ConnectionChecker:
         await asyncio.to_thread(_batch_save)
         logger.debug(f"[ConnectionChecker] Saved {len(statuses)} device statuses to database")
 
+    async def _collect_device_stats(self):
+        """Collect WiFi/CPU/RAM stats from online devices in parallel."""
+        async with self._cache_lock:
+            online_ips = [s.ip for s in self._status_cache.values() if s.online]
+
+        if not online_ips:
+            return
+
+        async def _query_one(ip):
+            try:
+                return ip, await adb_manager.quick_device_stats(ip)
+            except Exception as e:
+                logger.debug(f"[Stats] {ip} error: {e}")
+                return ip, {}
+
+        tasks = [_query_one(ip) for ip in online_ips]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        async with self._cache_lock:
+            for r in results:
+                if isinstance(r, tuple):
+                    ip, stats = r
+                    s = self._status_cache.get(ip)
+                    if s and stats:
+                        s.wifi_rssi = stats.get("wifi_rssi")
+                        s.wifi_link_speed = stats.get("wifi_link_speed")
+                        s.cpu_usage = stats.get("cpu_usage")
+                        s.ram_usage_percent = stats.get("ram_usage_percent")
+                        s.ram_total_mb = stats.get("ram_total_mb")
+                        s.ram_available_mb = stats.get("ram_available_mb")
+
+        logger.debug(f"[ConnectionChecker] Collected device stats for {len(online_ips)} devices")
+
     async def _log_health_history(self):
         """Log current device statuses to health history table (downsampled)."""
         async with self._cache_lock:
             now = datetime.now()
             records = [
-                (s.ip, s.status, s.response_time, s.app_status, s.cache_mb, now)
+                (s.ip, s.status, s.response_time, s.app_status, s.cache_mb,
+                 s.wifi_rssi, s.wifi_link_speed, s.cpu_usage,
+                 s.ram_usage_percent, s.ram_total_mb, s.ram_available_mb, now)
                 for s in self._status_cache.values()
             ]
         if records:
@@ -512,7 +555,11 @@ class ConnectionChecker:
                     # Cache info
                     "cache_mb": status.cache_mb,
                     "data_mb": status.data_mb,
-                    "cache_alert": status.cache_alert
+                    "cache_alert": status.cache_alert,
+                    # Device stats
+                    "wifi_rssi": status.wifi_rssi,
+                    "cpu_usage": status.cpu_usage,
+                    "ram_usage_percent": status.ram_usage_percent,
                 }
 
                 if status.online:

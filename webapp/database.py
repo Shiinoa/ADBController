@@ -442,10 +442,26 @@ def init_db():
             response_time REAL,
             app_status TEXT DEFAULT 'unknown',
             cache_mb REAL DEFAULT 0,
+            wifi_rssi INTEGER,
+            wifi_link_speed INTEGER,
+            cpu_usage REAL,
+            ram_usage_percent REAL,
+            ram_total_mb REAL,
+            ram_available_mb REAL,
             recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_health_ip_time ON device_health_history(ip, recorded_at)')
+
+    # Migration: add new columns if missing
+    cursor.execute("PRAGMA table_info(device_health_history)")
+    existing_cols = {col[1] for col in cursor.fetchall()}
+    for col, coltype in [('wifi_rssi', 'INTEGER'), ('wifi_link_speed', 'INTEGER'),
+                         ('cpu_usage', 'REAL'), ('ram_usage_percent', 'REAL'),
+                         ('ram_total_mb', 'REAL'), ('ram_available_mb', 'REAL')]:
+        if col not in existing_cols:
+            cursor.execute(f'ALTER TABLE device_health_history ADD COLUMN {col} {coltype}')
+            logger.info(f"[DB] Added column {col} to device_health_history")
 
     cursor.execute('''
         INSERT OR IGNORE INTO plants (code, name, location, timezone, description, is_active)
@@ -1739,12 +1755,17 @@ def log_health_record(ip: str, status: str, response_time: float = None,
 
 
 def log_health_records_batch(records: list):
-    """Batch insert health records. Each record is a tuple (ip, status, response_time, app_status, cache_mb, recorded_at)."""
+    """Batch insert health records.
+    Each record is a tuple: (ip, status, response_time, app_status, cache_mb,
+    wifi_rssi, wifi_link_speed, cpu_usage, ram_usage_percent, ram_total_mb, ram_available_mb, recorded_at)
+    """
     conn = get_db()
     cursor = conn.cursor()
     cursor.executemany(
-        "INSERT INTO device_health_history (ip, status, response_time, app_status, cache_mb, recorded_at) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO device_health_history "
+        "(ip, status, response_time, app_status, cache_mb, "
+        "wifi_rssi, wifi_link_speed, cpu_usage, ram_usage_percent, ram_total_mb, ram_available_mb, recorded_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         records
     )
     conn.commit()
@@ -1756,7 +1777,9 @@ def get_health_history(ip: str, start: datetime, end: datetime, limit: int = 500
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT ip, status, response_time, app_status, cache_mb, recorded_at "
+        "SELECT ip, status, response_time, app_status, cache_mb, "
+        "wifi_rssi, wifi_link_speed, cpu_usage, ram_usage_percent, ram_total_mb, ram_available_mb, "
+        "recorded_at "
         "FROM device_health_history WHERE ip = ? AND recorded_at BETWEEN ? AND ? "
         "ORDER BY recorded_at DESC LIMIT ?",
         (ip, start, end, limit)
@@ -1774,7 +1797,10 @@ def get_health_summary(ip: str, start: datetime, end: datetime) -> Dict:
         "SELECT COUNT(*) as total, "
         "SUM(CASE WHEN status = 'online' THEN 1 ELSE 0 END) as online_count, "
         "SUM(CASE WHEN status = 'offline' THEN 1 ELSE 0 END) as offline_count, "
-        "AVG(response_time) as avg_response_time "
+        "AVG(response_time) as avg_response_time, "
+        "AVG(wifi_rssi) as avg_wifi_rssi, "
+        "AVG(cpu_usage) as avg_cpu_usage, "
+        "AVG(ram_usage_percent) as avg_ram_usage "
         "FROM device_health_history WHERE ip = ? AND recorded_at BETWEEN ? AND ?",
         (ip, start, end)
     )
@@ -1789,6 +1815,9 @@ def get_health_summary(ip: str, start: datetime, end: datetime) -> Dict:
         "offline_count": row["offline_count"] or 0,
         "uptime_percent": round(online / total * 100, 1) if total > 0 else 0,
         "avg_response_time": round(row["avg_response_time"] or 0, 1),
+        "avg_wifi_rssi": round(row["avg_wifi_rssi"] or 0) if row["avg_wifi_rssi"] else None,
+        "avg_cpu_usage": round(row["avg_cpu_usage"] or 0, 1) if row["avg_cpu_usage"] else None,
+        "avg_ram_usage": round(row["avg_ram_usage"] or 0, 1) if row["avg_ram_usage"] else None,
     }
 
 
@@ -1801,6 +1830,9 @@ def get_all_devices_health_summary(start: datetime, end: datetime) -> List[Dict]
         "SUM(CASE WHEN h.status = 'online' THEN 1 ELSE 0 END) as online_count, "
         "SUM(CASE WHEN h.status = 'offline' THEN 1 ELSE 0 END) as offline_count, "
         "AVG(h.response_time) as avg_response_time, "
+        "AVG(h.wifi_rssi) as avg_wifi_rssi, "
+        "AVG(h.cpu_usage) as avg_cpu_usage, "
+        "AVG(h.ram_usage_percent) as avg_ram_usage, "
         "d.asset_name, d.default_location "
         "FROM device_health_history h "
         "LEFT JOIN device_inventory d ON h.ip = d.ip "
@@ -1823,6 +1855,9 @@ def get_all_devices_health_summary(start: datetime, end: datetime) -> List[Dict]
             "offline_count": r["offline_count"] or 0,
             "uptime_percent": round(online / total * 100, 1) if total > 0 else 0,
             "avg_response_time": round(r["avg_response_time"] or 0, 1),
+            "avg_wifi_rssi": round(r["avg_wifi_rssi"]) if r["avg_wifi_rssi"] else None,
+            "avg_cpu_usage": round(r["avg_cpu_usage"], 1) if r["avg_cpu_usage"] else None,
+            "avg_ram_usage": round(r["avg_ram_usage"], 1) if r["avg_ram_usage"] else None,
         })
     return result
 

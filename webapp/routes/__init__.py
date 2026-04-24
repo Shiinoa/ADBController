@@ -18,6 +18,7 @@ from .documents import router as documents_router
 from .plants import router as plants_router
 from .backup import router as backup_router
 from .health_history import router as health_history_router
+from .network_scan import router as network_scan_router
 
 __all__ = [
     'auth_router',
@@ -37,4 +38,5 @@ __all__ = [
     'plants_router',
     'backup_router',
     'health_history_router',
+    'network_scan_router',
 ]
